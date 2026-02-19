@@ -2,14 +2,14 @@ from tmdbhelper.lib.api.anilist.sync.property_mixins import SyncDataParentProper
 from tmdbhelper.lib.api.anilist.sync.activity import SyncLastActivities
 from tmdbhelper.lib.api.anilist.sync.itemdata import MEDIALIST_QUERY
 from jurialmunkey.ftools import cached_property
-from tmdbhelper.lib.addon.tmdate import set_timestamp
+from tmdbhelper.lib.addon.tmdate import set_timestamp, get_timestamp
 from tmdbhelper.lib.files.locker import mutexlock
 from tmdbhelper.lib.addon.consts import DEFAULT_EXPIRY
+from tmdbhelper.lib.addon.thread import ParallelThread
 
 
 def timerlock(func):
     def wrapper(self, *args, **kwargs):
-        from tmdbhelper.lib.addon.tmdate import get_timestamp
         interval = 3
         propname = f'syncdecorators.timerlock.sync_anilist.{self.item_type}.{self.method}'
         if get_timestamp(self.window.get_property(propname) or 0, set_int=True):
@@ -112,8 +112,6 @@ class AniListDataType(SyncDataParentProperties):
 
     def _resolve_tmdb_ids(self, entries):
         """Resolve AniList media IDs to TMDb IDs and return list of (entry, tmdb_type, tmdb_id) tuples."""
-        from tmdbhelper.lib.addon.thread import ParallelThread
-
         tmdb_type = 'tv' if self.item_type in ('show', 'season', 'episode') else 'movie'
 
         def resolve_entry(entry):
@@ -198,32 +196,8 @@ class SyncAniListMediaListManga(AniListDataType):
     """Syncs all AniList manga lists."""
     keys = ('anilist_status', 'anilist_score', 'anilist_progress', 'anilist_updated_at', 'anilist_listed_at')
     method = 'medialist_manga'
+    anilist_media_type = 'MANGA'
 
     @cached_property
     def item_type(self):
         return 'movie'  # Manga maps to movies in TMDb terms
-
-    def get_medialist(self):
-        """Fetch manga media list."""
-        user_id = self.anilist_api.profile.user_id
-        if not user_id:
-            return None
-
-        variables = {'userId': user_id, 'type': 'MANGA'}
-        response = self.anilist_api.post_graphql(MEDIALIST_QUERY, variables)
-        if not response:
-            return None
-
-        try:
-            lists = response['data']['MediaListCollection']['lists']
-        except (KeyError, TypeError):
-            return None
-
-        entries = []
-        for lst in (lists or []):
-            entries.extend(lst.get('entries') or [])
-
-        if not entries:
-            return []
-
-        return self._resolve_tmdb_ids(entries)

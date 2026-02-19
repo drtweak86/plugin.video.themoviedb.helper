@@ -1,4 +1,5 @@
 from jurialmunkey.ftools import cached_property
+from datetime import datetime, timezone
 
 
 MEDIALIST_QUERY = '''
@@ -79,8 +80,6 @@ class AniListSyncItemData:
         updated = self.item.get('updatedAt')
         if not updated:
             return None
-        # AniList updatedAt is a Unix timestamp integer
-        from datetime import datetime, timezone
         try:
             return datetime.fromtimestamp(int(updated), tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
         except (ValueError, TypeError, OSError):
@@ -91,7 +90,6 @@ class AniListSyncItemData:
         created = self.item.get('createdAt')
         if not created:
             return None
-        from datetime import datetime, timezone
         try:
             return datetime.fromtimestamp(int(created), tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
         except (ValueError, TypeError, OSError):

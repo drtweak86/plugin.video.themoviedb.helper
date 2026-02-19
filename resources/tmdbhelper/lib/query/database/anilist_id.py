@@ -2,6 +2,13 @@ from jurialmunkey.ftools import cached_property
 from tmdbhelper.lib.addon.logger import kodi_log
 
 
+# Process-level session cache: avoids repeated DB opens + TMDb API calls
+# for AniList IDs already resolved within the current Kodi Python process.
+# Keys are f'{anilist_id}_{tmdb_type}', values are tmdb_id ints.
+# GIL makes simple dict reads/writes thread-safe in CPython.
+_session_cache: dict = {}
+
+
 class FindQueriesDatabaseAniListID:
 
     anilist_id_columns = {
@@ -36,15 +43,21 @@ class FindQueriesDatabaseAniListID:
     def get_anilist_tmdb_id(self, anilist_id, mal_id=None, title=None, year=None, tmdb_type='tv'):
         """
         Resolve an AniList media ID to a TMDb ID.
-        Checks cache first, then queries TMDb if needed.
+        Checks process-level session cache first, then persistent DB, then queries TMDb.
         """
         table = 'anilist_id'
         item_id = f'anilist_{anilist_id}_{tmdb_type}'
+        cache_key = f'{anilist_id}_{tmdb_type}'
 
-        def get_cached():
+        # 1. Fast in-process session cache (no I/O)
+        cached = _session_cache.get(cache_key)
+        if cached:
+            return cached
+
+        def get_db_cached():
             return self.access.get_cached(table=table, item_id=item_id, key='tmdb_id')
 
-        def set_cached():
+        def set_db_cached():
             if not self.is_expired(f'{table}.{item_id}'):
                 return
             tmdb_id = self._resolve_anilist_to_tmdb(anilist_id, mal_id, title, year, tmdb_type)
@@ -56,9 +69,13 @@ class FindQueriesDatabaseAniListID:
                 values=(item_id, anilist_id, mal_id, tmdb_id, tmdb_type, title, year)
             )
             self.set_expiry(f'{table}.{item_id}')
-            return get_cached()
+            return get_db_cached()
 
-        return get_cached() or set_cached()
+        # 2. Persistent DB cache (disk I/O, but no network)
+        result = get_db_cached() or set_db_cached()
+        if result:
+            _session_cache[cache_key] = result
+        return result
 
     def _resolve_anilist_to_tmdb(self, anilist_id, mal_id, title, year, tmdb_type):
         """Search TMDb for the matching title and return TMDb ID."""
@@ -100,9 +117,7 @@ class FindQueriesDatabaseAniListID:
             if not items:
                 return None
 
-            # Find best match by title similarity
-            best = self._find_best_match(items, title, year, search_type)
-            return best
+            return self._find_best_match(items, title, year, search_type)
         except (AttributeError, KeyError, TypeError):
             return None
 
@@ -138,8 +153,13 @@ class FindQueriesDatabaseAniListID:
 def get_anilist_tmdb_id(anilist_id, mal_id, title, year, tmdb_type):
     """
     Module-level helper to resolve AniList media ID to TMDb ID.
-    Uses FindQueriesDatabase to leverage shared caching infrastructure.
+    Checks process-level session cache before opening the DB.
     """
+    cache_key = f'{anilist_id}_{tmdb_type}'
+    cached = _session_cache.get(cache_key)
+    if cached:
+        return cached
+
     try:
         from tmdbhelper.lib.query.database.database import FindQueriesDatabase
         db = FindQueriesDatabase()

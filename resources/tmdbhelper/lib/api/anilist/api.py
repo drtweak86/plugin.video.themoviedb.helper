@@ -3,9 +3,14 @@ from tmdbhelper.lib.api.request import NoCacheRequestAPI
 from tmdbhelper.lib.api.api_keys.anilist import CLIENT_ID, USER_TOKEN
 from tmdbhelper.lib.api.anilist.authenticator import AniListAuthenticator
 from tmdbhelper.lib.api.anilist.profile import AniListProfile
+from tmdbhelper.lib.files.futils import json_dumps as data_dumps
 
 
 API_URL = 'https://graphql.anilist.co'
+_HEADERS_BASE = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+}
 
 
 class AniListAPI(NoCacheRequestAPI):
@@ -27,21 +32,13 @@ class AniListAPI(NoCacheRequestAPI):
         self.login() if force else self.authorize()
 
     @property
-    def headers_base(self):
-        return {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        }
-
-    @property
     def headers(self):
         return self.get_headers(self.access_token)
 
     def get_headers(self, access_token=None):
-        headers = {}
-        headers.update(self.headers_base)
-        headers.update({'Authorization': f'Bearer {access_token}'} if access_token else {})
-        return headers
+        if access_token:
+            return {**_HEADERS_BASE, 'Authorization': f'Bearer {access_token}'}
+        return dict(_HEADERS_BASE)
 
     @headers.setter
     def headers(self, value):
@@ -84,7 +81,6 @@ class AniListAPI(NoCacheRequestAPI):
 
     def post_graphql(self, query, variables=None):
         """Execute a GraphQL query against the AniList API."""
-        from tmdbhelper.lib.files.futils import json_dumps as data_dumps
         postdata = {'query': query}
         if variables:
             postdata['variables'] = variables
@@ -108,7 +104,6 @@ class AniListAPI(NoCacheRequestAPI):
             return {}
 
     def post_response(self, *args, postdata=None, response_method='post', **kwargs):
-        from tmdbhelper.lib.files.futils import json_dumps as data_dumps
         return self.get_simple_api_request(
             self.get_request_url(*args, **kwargs),
             headers=self.headers,
