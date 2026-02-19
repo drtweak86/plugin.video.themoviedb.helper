@@ -22,6 +22,11 @@ class CommonContainerAPIs():
         return TraktAPI()
 
     @cached_property
+    def anilist_api(self):
+        from tmdbhelper.lib.api.anilist.api import AniListAPI
+        return AniListAPI()
+
+    @cached_property
     def ftv_api(self):
         from tmdbhelper.lib.api.fanarttv.api import FanartTV
         from tmdbhelper.lib.addon.plugin import get_setting

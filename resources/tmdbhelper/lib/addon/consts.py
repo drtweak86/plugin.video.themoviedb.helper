@@ -393,6 +393,21 @@ ROUTE_NOID = {
     'random_anticipated': {'route': {
         'module_name': 'tmdbhelper.lib.items.directories.trakt.lists_random',
         'import_attr': 'ListTraktAnticipatedRandomised'}},
+    'anilist_watchlist': {'route': {
+        'module_name': 'tmdbhelper.lib.items.directories.anilist.lists_sync',
+        'import_attr': 'ListAniListWatchlist'}},
+    'anilist_watching': {'route': {
+        'module_name': 'tmdbhelper.lib.items.directories.anilist.lists_sync',
+        'import_attr': 'ListAniListWatching'}},
+    'anilist_completed': {'route': {
+        'module_name': 'tmdbhelper.lib.items.directories.anilist.lists_sync',
+        'import_attr': 'ListAniListCompleted'}},
+    'anilist_dropped': {'route': {
+        'module_name': 'tmdbhelper.lib.items.directories.anilist.lists_sync',
+        'import_attr': 'ListAniListDropped'}},
+    'anilist_paused': {'route': {
+        'module_name': 'tmdbhelper.lib.items.directories.anilist.lists_sync',
+        'import_attr': 'ListAniListPaused'}},
 }
 
 

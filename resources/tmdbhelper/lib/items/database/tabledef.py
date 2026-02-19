@@ -1061,6 +1061,30 @@ SIMPLECACHE_COLUMNS = {
         'sync': ('tmdbhelper.lib.api.trakt.sync.datatype', 'SyncAllNextEpisodes', ),
         'indexed': True
     },
+    'anilist_status': {
+        'data': 'TEXT',
+        'sync': ('tmdbhelper.lib.api.anilist.sync.datatype', 'SyncAniListMediaListAnime', ),
+        'indexed': True
+    },
+    'anilist_score': {
+        'data': 'INTEGER',
+        'sync': ('tmdbhelper.lib.api.anilist.sync.datatype', 'SyncAniListMediaListAnime', )
+    },
+    'anilist_progress': {
+        'data': 'INTEGER',
+        'sync': ('tmdbhelper.lib.api.anilist.sync.datatype', 'SyncAniListMediaListAnime', ),
+        'indexed': True
+    },
+    'anilist_updated_at': {
+        'data': 'TEXT',
+        'sync': ('tmdbhelper.lib.api.anilist.sync.datatype', 'SyncAniListMediaListAnime', ),
+        'indexed': True
+    },
+    'anilist_listed_at': {
+        'data': 'TEXT',
+        'sync': ('tmdbhelper.lib.api.anilist.sync.datatype', 'SyncAniListMediaListAnime', ),
+        'indexed': True
+    },
 }
 
 LACTIVITIES_COLUMNS = {

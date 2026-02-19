@@ -21,6 +21,7 @@ from tmdbhelper.lib.query.database.trakt_id import FindQueriesDatabaseTraktID
 from tmdbhelper.lib.query.database.trakt_stats import FindQueriesDatabaseTraktStats
 from tmdbhelper.lib.query.database.identifier import FindQueriesDatabaseIdentifier
 from tmdbhelper.lib.query.database.user_ratings import FindQueriesDatabaseUserRatings
+from tmdbhelper.lib.query.database.anilist_id import FindQueriesDatabaseAniListID
 
 
 class FindQueriesDatabase(
@@ -43,6 +44,7 @@ class FindQueriesDatabase(
     FindQueriesDatabaseTraktStats,
     FindQueriesDatabaseIdentifier,
     FindQueriesDatabaseUserRatings,
+    FindQueriesDatabaseAniListID,
 ):
     cache_filename = 'ItemQueries.db'
 
@@ -56,7 +58,7 @@ class FindQueriesDatabase(
         },
     }
 
-    database_version = 4
+    database_version = 5
 
     database_changes = {
         2: (
@@ -65,7 +67,8 @@ class FindQueriesDatabase(
         3: (),
         4: (
             'DROP TABLE IF EXISTS trakt_id',
-        )
+        ),
+        5: (),
     }
 
     @property
@@ -91,6 +94,7 @@ class FindQueriesDatabase(
             'trakt_stats': self.trakt_stats_columns,
             'identifier': self.identifier_columns,
             'user_ratings': self.user_ratings_columns,
+            'anilist_id': self.anilist_id_columns,
         }
 
     def __init__(self):

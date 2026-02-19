@@ -57,6 +57,16 @@ class Script(object):
         'delete_listdata':
             lambda **kwargs: importmodule('tmdbhelper.lib.script.method.tmdb', 'delete_listdata')(**kwargs),
 
+        # AniList Utils
+        'sync_anilist':
+            lambda **kwargs: importmodule('tmdbhelper.lib.script.method.anilist', 'sync_anilist')(**kwargs),
+        'authenticate_anilist':
+            lambda **kwargs: importmodule('tmdbhelper.lib.script.method.anilist', 'authenticate_anilist')(**kwargs),
+        'revoke_anilist':
+            lambda **kwargs: importmodule('tmdbhelper.lib.script.method.anilist', 'revoke_anilist')(**kwargs),
+        'invalidate_anilist_sync':
+            lambda **kwargs: importmodule('tmdbhelper.lib.script.method.anilist', 'invalidate_anilist_sync')(**kwargs),
+
         # Trakt Utils
         'like_list':
             lambda **kwargs: importmodule('tmdbhelper.lib.script.method.trakt', 'like_list')(**kwargs),
