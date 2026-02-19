@@ -191,6 +191,9 @@ class TraktAuthenticator:
     def login(self):
         if not self.user_code or not self.device_code:
             return
+        from tmdbhelper.lib.api.trakt.qr import show_qr_auth_dialog
+        activation_url = f'https://trakt.tv/activate/{self.user_code}'
+        show_qr_auth_dialog(activation_url, self.user_code)
         self.poller()
 
     def logout(self, confirmation=True):
