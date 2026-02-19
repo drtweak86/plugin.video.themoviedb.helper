@@ -60,7 +60,8 @@ class AniListAuthenticator:
     def login(self):
         """
         AniList uses OAuth implicit grant flow.
-        Direct the user to the AniList auth URL, they approve and copy the token from the redirect URL.
+        Shows a QR code the user scans with their phone to open the auth URL,
+        then prompts them to paste the access_token from the AniList pin page.
         """
         client_id = self.anilist_api.client_id
         if not client_id:
@@ -72,13 +73,8 @@ class AniListAuthenticator:
 
         auth_url = ANILIST_AUTH_URL.format(client_id=client_id)
 
-        Dialog().ok(
-            get_localized(32097),
-            (
-                f'Visit the following URL to authorize AniList:\n[B]{auth_url}[/B]\n\n'
-                'After approving, copy the [B]access_token[/B] value from the redirect URL.'
-            )
-        )
+        from tmdbhelper.lib.api.anilist.qr import show_qr_auth_dialog
+        show_qr_auth_dialog(auth_url)
 
         token = Dialog().input('Paste your AniList access token here:')
         if not token:
