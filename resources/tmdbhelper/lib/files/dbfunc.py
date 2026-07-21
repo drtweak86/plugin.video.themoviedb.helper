@@ -23,6 +23,10 @@ class DatabaseConnection:
 
     @contextmanager
     def open(self):
+        # Locked for the full body (not just connection setup) so reentrant same-thread
+        # calls nest safely via RLock, while a fresh connection/cursor is issued per call
+        # rather than reused, since a shared cursor closed by an outer caller would break
+        # any concurrent thread still using it.
         with self._lock:
             db = self.cache.get_database()
             if not db:
@@ -40,7 +44,6 @@ class DatabaseConnection:
                     db.close()
                 except Exception:
                     pass
-
 
 
 class DatabaseAccess:
