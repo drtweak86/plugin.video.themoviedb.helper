@@ -51,5 +51,5 @@ class ListGemini(ContainerDefaultCacheDirectory):
         if limit:
             items = items[:try_int(limit)]
         self.container_content = convert_type(tmdb_type or 'both', 'container', items=items)
-        self.plugin_name = 'Gemini'
+        self.plugin_category = 'Gemini'
         return items
