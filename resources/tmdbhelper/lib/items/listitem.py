@@ -377,9 +377,13 @@ class _Studio(_ListItem):
         self.is_folder = True
 
     def finalise_params_details(self):
+        company_id = self.unique_ids.get('tmdb')
+        if not company_id:
+            self.is_folder = False
+            return self.params
         self.params['info'] = 'discover'
         self.params['tmdb_type'] = 'movie'
-        self.params['with_companies'] = self.unique_ids.get('tmdb')
+        self.params['with_companies'] = company_id
         self.params['with_id'] = 'True'
         return self.params
 
