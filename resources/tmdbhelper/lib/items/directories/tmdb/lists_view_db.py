@@ -77,22 +77,22 @@ class ListThumb(ListImageViewBase):
     view_name = 'thumb'
 
 
-class ListCast(ContainerCacheOnlyDirectory):
+class ListPersonListViewBase(ContainerCacheOnlyDirectory):
+    view_name = None
 
     @ListConfigureOffset
     def get_items(self, tmdb_id, tmdb_type, season=None, episode=None, limit=None, sort_by=None, sort_how=None, offset=None, **kwargs):
-        sync = BaseViewFactory('castmember', tmdb_type, tmdb_id, season, episode, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
+        sync = BaseViewFactory(self.view_name, tmdb_type, tmdb_id, season, episode, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
         self.container_content = convert_type('person', 'container')
         return sync.data
 
 
-class ListCrew(ContainerCacheOnlyDirectory):
+class ListCast(ListPersonListViewBase):
+    view_name = 'castmember'
 
-    @ListConfigureOffset
-    def get_items(self, tmdb_id, tmdb_type, season=None, episode=None, limit=None, sort_by=None, sort_how=None, offset=None, **kwargs):
-        sync = BaseViewFactory('crewmember', tmdb_type, tmdb_id, season, episode, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
-        self.container_content = convert_type('person', 'container')
-        return sync.data
+
+class ListCrew(ListPersonListViewBase):
+    view_name = 'crewmember'
 
 
 class ListSeries(ContainerDefaultCacheDirectory):
