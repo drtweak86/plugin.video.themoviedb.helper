@@ -17,6 +17,9 @@ class TMDbAPI(NoCacheRequestAPI):
     def __init__(
             self,
             api_key=None,
+            # NOTE: get_language() is evaluated once, at import time, not per-call, so a
+            # language setting change won't be picked up by new TMDbAPI() calls until the
+            # addon reloads. Known, left as-is to avoid changing existing behavior.
             language=get_language()):
         api_key = api_key or self.api_key
         api_url = self.api_url
@@ -77,6 +80,7 @@ class TMDbAPI(NoCacheRequestAPI):
         return items
 
     def configure_request_kwargs(self, kwargs):
+        """ Base request kwargs; TMDb below overrides this to add region/image/video language too. """
         kwargs['language'] = self.req_language
         return kwargs
 
@@ -86,6 +90,9 @@ class TMDbAPI(NoCacheRequestAPI):
         return self.get_api_request_json(requrl, postdata=postdata, headers=headers, method=method)
 
 
+# append_to_response_endpoints tiers: STANDARD is always requested; EXTENDED and LANGUAGE
+# are opt-in per call (via get_append_to_response's extended/language flags) since they add
+# extra response weight not every caller needs.
 ATR_STANDARD = 0
 ATR_EXTENDED = 1
 ATR_LANGUAGE = 2
@@ -156,6 +163,7 @@ class TMDb(TMDbAPI):
         return f'{self.iso_language},null,en'
 
     def configure_request_kwargs(self, kwargs):
+        """ Overrides TMDbAPI.configure_request_kwargs to add region/image/video language params. """
         kwargs['region'] = self.iso_region
         kwargs['language'] = self.req_language
         kwargs['include_image_language'] = self.include_image_language
