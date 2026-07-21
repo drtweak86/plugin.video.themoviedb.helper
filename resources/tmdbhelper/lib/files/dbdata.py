@@ -4,6 +4,7 @@ from tmdbhelper.lib.addon.logger import kodi_log, TimerFunc
 from tmdbhelper.lib.addon.plugin import get_setting, get_version
 from tmdbhelper.lib.files.futils import FileUtils
 import sqlite3
+import time
 
 
 DEFAULT_TABLE = 'simplecache'
@@ -15,6 +16,9 @@ class DatabaseCore:
     _fileutils = FileUtils()  # Import to use plugin addon_data folder not the module one
     _db_timeout = 60.0
     _db_read_timeout = 1.0
+    _db_connect_attempts = 3
+    _db_connect_retry_delay = 0.05
+    _db_mmap_size = 268435456
     database_version = 1
     database_changes = {}
 
@@ -71,7 +75,7 @@ class DatabaseCore:
         cursor.execute("PRAGMA synchronous=NORMAL")
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.execute("PRAGMA mmap_size=268435456")
+        cursor.execute(f"PRAGMA mmap_size={self._db_mmap_size}")
         return connection
 
     def init_database(self):
@@ -98,20 +102,18 @@ class DatabaseCore:
 
     def get_database(self, read_only=False, log_level=1):
         timeout = self._db_read_timeout if read_only else self._db_timeout
-        for attempt in range(3):
+        for attempt in range(self._db_connect_attempts):
             try:
                 connection = sqlite3.connect(self._db_file, timeout=timeout, cached_statements=0)
                 connection.row_factory = sqlite3.Row
                 return self.set_pragmas(connection)
             except sqlite3.OperationalError:
-                if attempt == 2:
+                if attempt == self._db_connect_attempts - 1:
                     break
-                import time
-                time.sleep(0.05)
+                time.sleep(self._db_connect_retry_delay)
             except Exception as error:
                 self.kodi_log(f'CACHE: ERROR while retrieving _database: {error}\n{self._sc_name}', log_level)
                 return
-
 
     def database_execute(self, connection, query, data=None):
         try:
@@ -137,6 +139,12 @@ class DatabaseCore:
     @property
     def database_tables(self):
         return {}
+
+    def _init_execute(self, cursor, query):
+        try:
+            cursor.execute(query)
+        except Exception as error:
+            self.kodi_log(f'CACHE: Exception while initializing _database: {error}\n{self._sc_name} - {query}', 1)
 
     def create_database_execute(self, connection):
 
@@ -171,10 +179,7 @@ class DatabaseCore:
                 if version <= this_database_version:
                     continue
                 for query in changes:
-                    try:
-                        cursor.execute(query)
-                    except Exception as error:
-                        self.kodi_log(f'CACHE: Exception while initializing _database: {error}\n{self._sc_name} - {query}', 1)
+                    self._init_execute(cursor, query)
 
         # CREATE TABLES IF NOT EXISTS
         for table, columns in self.database_tables.items():
@@ -183,10 +188,7 @@ class DatabaseCore:
             query += create_column_fkey(columns)
             query += create_column_uids(columns)
             query = 'CREATE TABLE IF NOT EXISTS {table}({query})'.format(table=table, query=', '.join(query))
-            try:
-                cursor.execute(query)
-            except Exception as error:
-                self.kodi_log(f'CACHE: Exception while initializing _database: {error}\n{self._sc_name} - {query}', 1)
+            self._init_execute(cursor, query)
 
         # CREATE INDICIES
         for table, columns in self.database_tables.items():
@@ -194,19 +196,12 @@ class DatabaseCore:
                 if not v.get('indexed'):
                     continue
                 query = 'CREATE INDEX IF NOT EXISTS {table}_{column}_x ON {table}({column})'.format(table=table, column=column)
-                try:
-                    cursor.execute(query)
-                except Exception as error:
-                    self.kodi_log(f'CACHE: Exception while initializing _database: {error}\n{self._sc_name} - {query}', 1)
+                self._init_execute(cursor, query)
 
         # DO SOME DATABASE MAINTAINENCE IF DB VERSION INCREASED
         if this_database_version < self.database_version:
             # UPDATE DATABASE VERSION
-            try:
-                query = f"PRAGMA user_version = {self.database_version}"
-                cursor.execute(query)
-            except Exception as error:
-                self.kodi_log(f'CACHE: Exception while initializing _database: {error}\n{self._sc_name} - {query}', 1)
+            self._init_execute(cursor, f"PRAGMA user_version = {self.database_version}")
 
         return connection
 
