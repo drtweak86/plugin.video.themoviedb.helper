@@ -27,29 +27,6 @@ class SyncItemDetailsDatabase(ItemDetailsDatabase):
         return result[0]
 
 
-class SyncDataSetters:
-    """ Add-in class to group setter methods for SyncData class """
-
-    def like_userlist(self, user_slug=None, list_slug=None, confirmation=False, delete=False):
-        from tmdbhelper.lib.addon.plugin import get_localized
-        func = self.delete_response if delete else self.post_response
-        response = func('users', user_slug, 'lists', list_slug, 'like')
-        if confirmation:
-            from xbmcgui import Dialog
-            affix = get_localized(32320) if delete else get_localized(32321)
-            body = [
-                get_localized(32316).format(affix),
-                get_localized(32168).format(list_slug, user_slug)
-            ] if response.status_code == 204 else [
-                get_localized(32317).format(affix),
-                get_localized(32168).format(list_slug, user_slug),
-                get_localized(32318).format(response.status_code)
-            ]
-            Dialog().ok(get_localized(32315), '\n'.join(body))
-        if response.status_code == 204:
-            return response
-
-
 class SyncDataGetterAll:
 
     operator = 'OR'
@@ -111,24 +88,8 @@ class SyncDataGetterProgressWatchedUnHidden(SyncDataGetterAll):
     query_clauses = ('item_type=?', 'progress_watched_hidden_at IS NULL', )
 
 
-class SyncDataGetterProgressCollectedUnHidden(SyncDataGetterAll):
-    query_clauses = ('item_type=?', 'progress_collected_hidden_at IS NULL', )
-
-
-class SyncDataGetterCalendarUnHidden(SyncDataGetterAll):
-    query_clauses = ('item_type=?', 'calendar_hidden_at IS NULL', )
-
-
 class SyncDataGetterDroppedWatchedUnHidden(SyncDataGetterAll):
     query_clauses = ('item_type=?', 'dropped_hidden_at IS NULL AND progress_watched_hidden_at IS NULL', )
-
-
-class SyncDataGetterDroppedCollectionUnHidden(SyncDataGetterAll):
-    query_clauses = ('item_type=?', 'dropped_hidden_at IS NULL AND progress_collected_hidden_at IS NULL', )
-
-
-class SyncDataGetterDroppedCalendarUnHidden(SyncDataGetterAll):
-    query_clauses = ('item_type=?', 'dropped_hidden_at IS NULL AND calendar_hidden_at IS NULL', )
 
 
 class SyncDataGetterAllUnHiddenMoviesToWatch(SyncDataGetterProgressWatchedUnHidden):

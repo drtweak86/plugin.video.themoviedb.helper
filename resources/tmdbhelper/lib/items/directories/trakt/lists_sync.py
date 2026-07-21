@@ -137,17 +137,6 @@ class ListMostWatched(ListStandardSync):
         return list_properties
 
 
-class ListPlaybackProgress(ListStandardSync):
-    def configure_list_properties(self, list_properties):
-        list_properties = super().configure_list_properties(list_properties)
-        list_properties.sync_type = 'playback'
-        list_properties.sort_by = 'paused'
-        list_properties.sort_how = 'desc'
-        list_properties.localize = 32196
-        list_properties.plugin_name = '{localized} {plural}'
-        return list_properties
-
-
 class ListFavorites(ListStandardSync):
     def configure_list_properties(self, list_properties):
         list_properties = super().configure_list_properties(list_properties)

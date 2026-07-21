@@ -12,7 +12,3 @@ class BasicCache(jurialmunkey.bcache.BasicCache):
     @staticmethod
     def kodi_traceback(exc, log_msg):
         kodi_traceback(exc, log_msg)
-
-
-class BasicCacheService(BasicCache):
-    _queue_limit = 20
