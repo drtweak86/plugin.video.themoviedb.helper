@@ -2690,6 +2690,31 @@ msgctxt "#32536"
 msgid "Unspecified"
 msgstr ""
 
+#: /resources/tmdbhelper/lib/api/gemini/api.py
+msgctxt "#32537"
+msgid "Gemini rejected the request. Check your API key in TMDb Helper settings."
+msgstr ""
+
+#: /resources/tmdbhelper/lib/api/gemini/api.py
+msgctxt "#32538"
+msgid "Gemini rate limit or quota exceeded. Try again later."
+msgstr ""
+
+#: /resources/tmdbhelper/lib/api/gemini/api.py
+msgctxt "#32539"
+msgid "Unable to reach Gemini. Check your network connection and try again."
+msgstr ""
+
+#: /resources/tmdbhelper/lib/api/gemini/api.py
+msgctxt "#32540"
+msgid "Gemini did not return a usable response. Check the Kodi log for details."
+msgstr ""
+
+#: /resources/tmdbhelper/lib/api/gemini/api.py
+msgctxt "#32541"
+msgid "Gemini responded, but no results could be matched in your local database."
+msgstr ""
+
 msgctxt "#30030"
 msgid "Hindi (India)"
 msgstr ""

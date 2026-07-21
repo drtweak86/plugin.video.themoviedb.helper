@@ -9,6 +9,12 @@ import re
 GEMINI_DEFAULT_MODEL_ID = "gemini-2.5-flash-lite"  # "gemini-2.5-flash-lite", "gemini-2.5-flash"
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
+GEMINI_ERROR_UNAUTHORIZED = 32537
+GEMINI_ERROR_RATE_LIMIT = 32538
+GEMINI_ERROR_NETWORK = 32539
+GEMINI_ERROR_GENERIC = 32540
+GEMINI_ERROR_NO_MATCHES = 32541
+
 QUERY_PROMPT_TEMPLATE_JSON_SHAPE = '''
 {
   "recommendations": [
@@ -71,6 +77,20 @@ Now:
 class Gemini(RequestAPI):
 
     api_key = get_setting('gemini_apikey', 'str')
+    last_error_message = None
+
+    def get_error_message(self):
+        if self.last_error_message:
+            return self.last_error_message
+        response = self.last_response
+        if response is None:
+            return get_localized(GEMINI_ERROR_NETWORK)
+        status = getattr(response, 'status_code', None)
+        if status in (401, 403):
+            return get_localized(GEMINI_ERROR_UNAUTHORIZED)
+        if status == 429:
+            return get_localized(GEMINI_ERROR_RATE_LIMIT)
+        return get_localized(GEMINI_ERROR_GENERIC)
 
     def __init__(self, api_key=None):
         api_key = api_key or self.api_key
@@ -128,10 +148,13 @@ class Gemini(RequestAPI):
         return data
 
     def get_prompt_items(self, prompt_text):
+        self.last_error_message = None
         data = self.get_prompt_recommendations(prompt_text)
         if not data:
             return
         data = self.get_tmdb_items(data)
+        if not data:
+            self.last_error_message = get_localized(GEMINI_ERROR_NO_MATCHES)
         return data
 
     def get_prompt_text(self, prompt_text):

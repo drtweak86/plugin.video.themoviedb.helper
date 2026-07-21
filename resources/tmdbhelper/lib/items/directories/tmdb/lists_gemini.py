@@ -43,6 +43,7 @@ class ListGemini(ContainerDefaultCacheDirectory):
             return
         items = self.get_cached_response()
         if not items:
+            Dialog().ok('Gemini', self.gemini.get_error_message())
             return
         if tmdb_type:
             mediatype = 'movie' if tmdb_type == 'movie' else 'tvshow'
