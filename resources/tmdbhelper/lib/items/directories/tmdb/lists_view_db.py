@@ -124,11 +124,12 @@ class ListStarredTvshows(ListPersonOrCollectionViewBase):
     content_type = 'tv'
 
 
-class ListStarredCombined(ContainerDefaultCacheDirectory):
+class ListCombinedViewBase(ContainerDefaultCacheDirectory):
+    view_name = None
 
     @ListConfigureOffset
     def get_items(self, tmdb_id, limit=None, sort_by=None, sort_how=None, offset=None, **kwargs):
-        sync = BaseViewFactory('starredcombined', 'person', tmdb_id, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
+        sync = BaseViewFactory(self.view_name, 'person', tmdb_id, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
         try:
             movie_count = len([i for i in sync.data if i and i['infoproperties'].get('tmdb_type') == 'movie'])
             shows_count = len(sync.data) - movie_count
@@ -137,6 +138,10 @@ class ListStarredCombined(ContainerDefaultCacheDirectory):
         self.kodi_db = self.get_kodi_database('both')
         self.container_content = convert_type('tv', 'container') if shows_count > movie_count else convert_type('movie', 'container')
         return sync.data
+
+
+class ListStarredCombined(ListCombinedViewBase):
+    view_name = 'starredcombined'
 
 
 class ListCrewedMovies(ListPersonOrCollectionViewBase):
@@ -149,36 +154,12 @@ class ListCrewedTvshows(ListPersonOrCollectionViewBase):
     content_type = 'tv'
 
 
-class ListCrewedCombined(ContainerDefaultCacheDirectory):
-
-    @ListConfigureOffset
-    def get_items(self, tmdb_id, limit=None, sort_by=None, sort_how=None, offset=None, **kwargs):
-        sync = BaseViewFactory('crewedcombined', 'person', tmdb_id, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
-        try:
-            movie_count = len([i for i in sync.data if i and i['infoproperties'].get('tmdb_type') == 'movie'])
-            shows_count = len(sync.data) - movie_count
-        except TypeError:
-            return
-        self.kodi_db = self.get_kodi_database('both')
-        self.container_content = convert_type('tv', 'container') if shows_count > movie_count else convert_type('movie', 'container')
-        return sync.data
+class ListCrewedCombined(ListCombinedViewBase):
+    view_name = 'crewedcombined'
 
 
-class ListCreditsCombined(ContainerDefaultCacheDirectory):
-
-    @ListConfigureOffset
-    def get_items(self, tmdb_id, limit=None, sort_by=None, sort_how=None, offset=None, **kwargs):
-        sync = BaseViewFactory('creditscombined', 'person', tmdb_id, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
-
-        try:
-            movie_count = len([i for i in sync.data if i and i['infoproperties'].get('tmdb_type') == 'movie'])
-            shows_count = len(sync.data) - movie_count
-        except TypeError:
-            return
-
-        self.kodi_db = self.get_kodi_database('both')
-        self.container_content = convert_type('tv', 'container') if shows_count > movie_count else convert_type('movie', 'container')
-        return sync.data
+class ListCreditsCombined(ListCombinedViewBase):
+    view_name = 'creditscombined'
 
 
 class ListVideos(ContainerCacheOnlyDirectory):
