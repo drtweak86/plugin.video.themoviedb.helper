@@ -51,6 +51,8 @@ class TableID:
             self.table, self.update_keys, conditions="tmdb_type=? AND tmdb_id=?")
 
         with self.access.connection.open() as connection:
+            if not connection:
+                return
             connection.execute('BEGIN')
             connection.execute(statement_insert, (self.tmdb_id, self.tmdb_type))
             connection.execute(statement_update, self.update_values)

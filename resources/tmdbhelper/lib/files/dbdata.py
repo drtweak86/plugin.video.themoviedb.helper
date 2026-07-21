@@ -89,7 +89,7 @@ class DatabaseCore:
         try:
             with TimerFunc(f'CACHE: Initialisation {self._db_file} took:'):
                 self.kodi_log(f'CACHE: Initialising...\n{self._db_file}\n{self._sc_name}', 1)
-                connection = sqlite3.connect(self._db_file, timeout=self._db_timeout)
+                connection = sqlite3.connect(self._db_file, timeout=self._db_timeout, cached_statements=0)
                 connection = self.set_pragmas(connection)
                 connection = self.create_database_execute(connection)
             return connection
@@ -98,13 +98,20 @@ class DatabaseCore:
 
     def get_database(self, read_only=False, log_level=1):
         timeout = self._db_read_timeout if read_only else self._db_timeout
-        try:
-            connection = sqlite3.connect(self._db_file, timeout=timeout)
-        except Exception as error:
-            self.kodi_log(f'CACHE: ERROR while retrieving _database: {error}\n{self._sc_name}', log_level)
-            return
-        connection.row_factory = sqlite3.Row
-        return self.set_pragmas(connection)
+        for attempt in range(3):
+            try:
+                connection = sqlite3.connect(self._db_file, timeout=timeout, cached_statements=0)
+                connection.row_factory = sqlite3.Row
+                return self.set_pragmas(connection)
+            except sqlite3.OperationalError:
+                if attempt == 2:
+                    break
+                import time
+                time.sleep(0.05)
+            except Exception as error:
+                self.kodi_log(f'CACHE: ERROR while retrieving _database: {error}\n{self._sc_name}', log_level)
+                return
+
 
     def database_execute(self, connection, query, data=None):
         try:

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from jurialmunkey.ftools import cached_property
 from contextlib import contextmanager
+from threading import RLock
 
 
 class DatabaseConnection:
@@ -9,24 +10,37 @@ class DatabaseConnection:
 
     def __init__(self, cache):
         self.cache = cache
+        self._lock = RLock()
 
     def close(self):
         if not self.open_connection:
             return
-        self.open_connection.close()
+        try:
+            self.open_connection.close()
+        except Exception:
+            pass
         self.open_connection = None
 
     @contextmanager
     def open(self):
-        existing_connection = bool(self.open_connection)
+        with self._lock:
+            db = self.cache.get_database()
+            if not db:
+                yield None
+                return
+            cursor = db.cursor()
+            old_conn = self.open_connection
+            self.open_connection = cursor
+            try:
+                yield cursor
+            finally:
+                self.open_connection = old_conn
+                try:
+                    cursor.close()
+                    db.close()
+                except Exception:
+                    pass
 
-        if not existing_connection:
-            self.open_connection = self.cache.get_database().cursor()
-
-        yield self.open_connection
-
-        if not existing_connection:
-            self.close()
 
 
 class DatabaseAccess:
