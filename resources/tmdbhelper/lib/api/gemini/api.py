@@ -52,6 +52,10 @@ LIMITS:
 - You MUST NOT return more than 10 items.
 - For general recommendation prompts ("recommend some...", "movies similar to..."),
   try to return 10 items, but fewer is allowed if appropriate.
+- Unless the prompt explicitly asks for only Movies or only Shows, aim for a
+  roughly even mix of "Movie" and "Show" types (e.g. around 5 of each out of 10)
+  so that separate Movie and Show result lists can both be populated. If the
+  subject matter genuinely only fits one type, an uneven mix is fine.
 
 PROMPT (the original user text to answer):
 

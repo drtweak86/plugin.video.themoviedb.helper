@@ -1,6 +1,7 @@
 from xbmcgui import Dialog, INPUT_ALPHANUM
 from tmdbhelper.lib.addon.plugin import get_localized, convert_type
 from jurialmunkey.ftools import cached_property
+from jurialmunkey.parser import try_int
 
 from tmdbhelper.lib.items.container import ContainerDefaultCacheDirectory
 from tmdbhelper.lib.items.directories.lists_default import ItemCache
@@ -33,7 +34,7 @@ class ListGemini(ContainerDefaultCacheDirectory):
             data = self.gemini.get_prompt_items(self.query)
         return data
 
-    def get_items(self, query=None, **kwargs):
+    def get_items(self, query=None, tmdb_type=None, limit=None, **kwargs):
         if not self.gemini.api_key:
             Dialog().ok('Gemini', f"{get_localized(32150)}[CR]{get_localized(32151).format('https://aistudio.google.com/app/api-keys')}")
             return
@@ -43,6 +44,11 @@ class ListGemini(ContainerDefaultCacheDirectory):
         items = self.get_cached_response()
         if not items:
             return
-        self.container_content = convert_type('both', 'container', items=items)
+        if tmdb_type:
+            mediatype = 'movie' if tmdb_type == 'movie' else 'tvshow'
+            items = [i for i in items if i.get('infolabels', {}).get('mediatype') == mediatype]
+        if limit:
+            items = items[:try_int(limit)]
+        self.container_content = convert_type(tmdb_type or 'both', 'container', items=items)
         self.plugin_name = 'Gemini'
         return items
