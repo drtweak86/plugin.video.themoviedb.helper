@@ -1,8 +1,6 @@
-# from jurialmunkey.ftools import cached_property
 from tmdbhelper.lib.addon.plugin import convert_type
 from jurialmunkey.modimp import importmodule
 from jurialmunkey.parser import try_int
-# from tmdbhelper.lib.addon.logger import kodi_log
 
 """
 BASEVIEW FACTORY

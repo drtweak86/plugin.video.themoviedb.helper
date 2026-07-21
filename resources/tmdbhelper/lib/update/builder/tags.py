@@ -1,7 +1,3 @@
-# from tmdbhelper.lib.addon.logger import kodi_log
-# from tmdbhelper.lib.addon.plugin import get_localized
-# from tmdbhelper.lib.api.kodi.rpc import set_tags
-# from tmdbhelper.lib.update.common import LibraryCommon
 from jurialmunkey.ftools import cached_property
 from tmdbhelper.lib.api.kodi.rpc import set_tags
 from tmdbhelper.lib.update.builder.userlist import LibraryBuilderUserList

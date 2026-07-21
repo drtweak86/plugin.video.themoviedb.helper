@@ -6,17 +6,6 @@ Used to sync detailed data about item mediatype with tmdb_id to cache and then r
 """
 
 
-# FIXME IMAGES
-"""
-def finalise_image():
-    item['infolabels']['title'] = f'{item["infoproperties"].get("width")}x{item["infoproperties"].get("height")}'
-    item['params'] = -1
-    item['path'] = item['art'].get('thumb') or item['art'].get('poster') or item['art'].get('fanart')
-    item['is_folder'] = False
-    item['library'] = 'pictures'
-"""
-
-
 def import_movie():
     from tmdbhelper.lib.items.database.baseitem_factories.concrete_classes.movie import Movie
     return Movie
