@@ -236,6 +236,8 @@ class BaseItem(ItemDetailsDatabaseAccess):
 
     def write_data_queue(self, queue):
         with self.connection.open():
+            if not self.connection.open_connection:
+                return
             self.connection.open_connection.execute('BEGIN')
             for func, args, kwgs in queue:
                 func(*args, **kwgs)

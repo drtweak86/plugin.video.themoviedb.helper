@@ -251,6 +251,8 @@ class ListItemThread:
         return list(itertools.chain.from_iterable((i for i in item_queue if i)))
 
     def set_func_queue(self):
+        if not self.connection.open_connection:
+            return
         self.connection.open_connection.execute('BEGIN')
         with TimerList(self.timer_lists, ' - writer', log_threshold=0.001, logging=self.log_timers):
             for func, args, kwgs in self.func_queue:

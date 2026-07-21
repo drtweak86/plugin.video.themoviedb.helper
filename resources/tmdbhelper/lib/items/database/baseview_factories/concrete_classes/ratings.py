@@ -191,6 +191,8 @@ class RatingsDict(BaseList):
         kwgs = {'values': self.configure_mapped_data(self.online_data_mapped)}
 
         with self.connection.open():
+            if not self.connection.open_connection:
+                return
             self.connection.open_connection.execute('BEGIN')
             func(*args, **kwgs)
             self.connection.open_connection.execute('COMMIT')
