@@ -3,6 +3,14 @@ from tmdbhelper.lib.files.dbdata import DatabaseStatements
 from jurialmunkey.ftools import cached_property
 
 
+# Shared by every "pull an id out of a possibly-missing/malformed API response" lookup below.
+_ID_LOOKUP_ERRORS = (AttributeError, KeyError, TypeError, IndexError)
+
+
+def _casefold_query(query):
+    return (query or '').casefold()  # Case fold query to avoid case sensitivity issues
+
+
 class TableID:
 
     table = 'tmdb_id'
@@ -31,7 +39,7 @@ class TableID:
     def get_id_results(self, data):
         try:
             return data[0]['tmdb_id']  # return data[0] for multi
-        except (AttributeError, KeyError, TypeError, IndexError):
+        except _ID_LOOKUP_ERRORS:
             return
 
     def get_id(self):
@@ -94,7 +102,7 @@ class TableFindID(TableID):
     def func_base_id(self):
         try:
             return self.func_data[f'{self.tmdb_type}_results'][0]['id']
-        except (AttributeError, KeyError, TypeError, IndexError):
+        except _ID_LOOKUP_ERRORS:
             pass
 
     @cached_property
@@ -103,7 +111,7 @@ class TableFindID(TableID):
             return
         try:
             return self.func_data['tv_episode_results'][0]['show_id']
-        except (AttributeError, KeyError, TypeError, IndexError):
+        except _ID_LOOKUP_ERRORS:
             return
 
     @cached_property
@@ -301,21 +309,21 @@ class TableMultiSearchID(TableSearchID):
     def get_id_results(self, data):
         try:
             return (data[0]['tmdb_id'], data[0]['tmdb_type'])
-        except (AttributeError, KeyError, TypeError, IndexError):
+        except _ID_LOOKUP_ERRORS:
             return
 
     @cached_property
     def tmdb_id(self):
         try:
             return self.func_data_id_generator_results['id']
-        except (AttributeError, KeyError, TypeError, IndexError):
+        except _ID_LOOKUP_ERRORS:
             return
 
     @cached_property
     def tmdb_type(self):
         try:
             return self.func_data_id_generator_results['media_type']
-        except (AttributeError, KeyError, TypeError, IndexError):
+        except _ID_LOOKUP_ERRORS:
             return
 
 
@@ -359,7 +367,7 @@ class FindQueriesDatabaseTMDbID:
 
         if use_multisearch:
             table_obj = TableMultiSearchID(parent=self, tmdb_type=tmdb_type)
-            table_obj.query = (query or '').casefold()  # Case fold query to avoid case sensitivity issues
+            table_obj.query = _casefold_query(query)
             table_obj.year = year
             table_obj.episode_year = episode_year
             return table_obj.get_id() or table_obj.set_id() or (None, None)
@@ -382,7 +390,7 @@ class FindQueriesDatabaseTMDbID:
             if not query:
                 return
             table_obj = TableNameID(parent=self, tmdb_type=tmdb_type)
-            table_obj.query = (query or '').casefold()  # Case fold query to avoid case sensitivity issues
+            table_obj.query = _casefold_query(query)
             table_obj.year = year
             table_obj.episode_year = episode_year
             return table_obj.get_id() or table_obj.set_id()
@@ -400,7 +408,7 @@ class FindQueriesDatabaseTMDbID:
             return
 
         table_obj = TableNameID(parent=self, tmdb_type=tmdb_type)
-        table_obj.query = (query or '').casefold()  # Case fold query to avoid case sensitivity issues
+        table_obj.query = _casefold_query(query)
 
         response = table_obj.func_data_results
         if not response:
