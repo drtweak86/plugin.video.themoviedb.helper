@@ -44,7 +44,6 @@ class ListDiscoverDir(ContainerDefaultCacheDirectory):
 
     @property
     def item_search(self):
-        from jurialmunkey.window import get_property
         params = self.get_winprop_params()
         if not params:
             return {}

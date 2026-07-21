@@ -36,7 +36,6 @@ class ListTraktRandomisedProperties(ListTraktStandardProperties):
 
     @cached_property
     def sorted_items(self):
-        import random
         return random.sample(self.filtered_items, self.sample_limit)
 
 
@@ -49,7 +48,6 @@ class ListTraktRandomised(ListTraktStandard):
         length = try_int(length)
 
         if tmdb_type == 'both':
-            import random
             items = []
             items += super().get_items(*args, length=length, tmdb_type='movie', **kwargs) or []
             self.list_properties = self.configure_list_properties(self.list_properties_class())

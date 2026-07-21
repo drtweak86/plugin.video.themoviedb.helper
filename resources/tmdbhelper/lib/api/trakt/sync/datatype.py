@@ -474,7 +474,6 @@ class SyncAllNextEpisodesMeta:
     @cached_property
     def item_queue(self):
         self.main.dialog_progress_bg.max_value = len(self.sd.items)
-        from tmdbhelper.lib.addon.thread import ParallelThread
         with ParallelThread(self.sd.items, self.get_items) as pt:
             item_queue = pt.queue
         return item_queue

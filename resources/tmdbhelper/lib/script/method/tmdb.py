@@ -17,7 +17,7 @@ def refresh_item(tmdb_type, tmdb_id, season=None, episode=None, **kwargs):
     import xbmcgui
     from tmdbhelper.lib.addon.dialog import BusyDialog
     from tmdbhelper.lib.script.method.kodi_utils import container_refresh
-    from tmdbhelper.lib.addon.plugin import get_localized, convert_type
+    from tmdbhelper.lib.addon.plugin import convert_type
     from tmdbhelper.lib.items.database.baseitem_factories.factory import BaseItemFactory
 
     def refresh_item_factory(season=None, episode=None):
