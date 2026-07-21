@@ -178,19 +178,23 @@ class Gemini(RequestAPI):
             year = i['year']
             mode = i['type']
         except (TypeError, KeyError):
-            kodi_log(f'Geimini INVALID SPEC: {i}', 1)
+            kodi_log(f'Gemini INVALID SPEC: {i}', 1)
             return
 
         if mode not in ('Movie', 'Show'):
-            kodi_log(f'Geimini INVALID SPEC: {i}', 1)
+            kodi_log(f'Gemini INVALID SPEC: {i}', 1)
             return
 
         tmdb_type = 'movie' if mode == 'Movie' else 'tv'
-        tmdb_id = self.database.get_tmdb_id(tmdb_type=tmdb_type, query=name, year=year)
-        tmdb_id = tmdb_id or self.database.get_tmdb_id(tmdb_type=tmdb_type, query=name)  # Try again without year
+        try:
+            tmdb_id = self.database.get_tmdb_id(tmdb_type=tmdb_type, query=name, year=year)
+            tmdb_id = tmdb_id or self.database.get_tmdb_id(tmdb_type=tmdb_type, query=name)  # Try again without year
+        except Exception as exc:
+            kodi_log(f'Gemini DB LOOKUP ERROR for {name}: {exc}', 1)
+            tmdb_id = None
 
         if not tmdb_id:
-            kodi_log(f'Geimini UNKNOWN ITEM: {i}', 1)
+            kodi_log(f'Gemini UNKNOWN ITEM: {i}', 1)
             return
 
         reason = i.get('reason') or ''
@@ -220,7 +224,7 @@ class Gemini(RequestAPI):
         try:
             data = data['recommendations']
         except (TypeError, KeyError):
-            kodi_log(f'Geimini FAILED: Unable to locate recommendations data', 1)
+            kodi_log(f'Gemini FAILED: Unable to locate recommendations data', 1)
             return
 
         from tmdbhelper.lib.addon.thread import ParallelThread
@@ -234,10 +238,10 @@ class Gemini(RequestAPI):
         try:
             parts = data['candidates'][0]['content']['parts']
         except (TypeError, IndexError, KeyError):
-            kodi_log(f'Geimini FAILED: Unable to get parts', 1)
+            kodi_log(f'Gemini FAILED: Unable to get parts', 1)
             return
         if not parts:
-            kodi_log(f'Geimini FAILED: Unable to get parts', 1)
+            kodi_log(f'Gemini FAILED: Unable to get parts', 1)
             return
         return "".join(part.get("text", "") for part in parts).strip()
 
@@ -245,10 +249,22 @@ class Gemini(RequestAPI):
     def get_json_from_candidate(text):
         """
         Given raw text from the model, find the first {...} block and parse it as JSON.
-        This lets us ignore any accidental extra text.
+        This lets us ignore any accidental extra text or markdown fences.
         """
-        start, end = text.find("{"), text.rfind("}")
-        if start == -1 or end == -1 or end <= start:
-            kodi_log(f'Geimini FAILED: Unable to find json data', 1)
+        if not text:
             return
-        return loads(text[start:end + 1])
+        # Clean up common markdown block formatting
+        cleaned = text.strip()
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r'^```[a-zA-Z]*\n?', '', cleaned)
+            cleaned = re.sub(r'\n?```$', '', cleaned).strip()
+
+        start, end = cleaned.find("{"), cleaned.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            kodi_log(f'Gemini FAILED: Unable to find json data in response', 1)
+            return
+        try:
+            return loads(cleaned[start:end + 1])
+        except Exception as exc:
+            kodi_log(f'Gemini FAILED: JSON parse error: {exc}', 1)
+            return
