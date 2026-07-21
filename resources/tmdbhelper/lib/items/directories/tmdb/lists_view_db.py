@@ -52,32 +52,29 @@ class ListConfigureOffset:
         return self.finalised_items
 
 
-class ListFanart(ContainerCacheOnlyDirectory):
+class ListImageViewBase(ContainerCacheOnlyDirectory):
+    view_name = None
+
     def get_items(self, tmdb_id, tmdb_type, season=None, episode=None, limit=None, sort_by=None, sort_how=None, **kwargs):
-        sync = BaseViewFactory('fanart', tmdb_type, tmdb_id, season, episode, filters=self.filters, limit=limit, sort_by=sort_by, sort_how=sort_how)
+        sync = BaseViewFactory(self.view_name, tmdb_type, tmdb_id, season, episode, filters=self.filters, limit=limit, sort_by=sort_by, sort_how=sort_how)
         self.container_content = convert_type('image', 'container')
         return sync.data
 
 
-class ListPoster(ContainerCacheOnlyDirectory):
-    def get_items(self, tmdb_id, tmdb_type, season=None, episode=None, limit=None, sort_by=None, sort_how=None, **kwargs):
-        sync = BaseViewFactory('poster', tmdb_type, tmdb_id, season, episode, filters=self.filters, limit=limit, sort_by=sort_by, sort_how=sort_how)
-        self.container_content = convert_type('image', 'container')
-        return sync.data
+class ListFanart(ListImageViewBase):
+    view_name = 'fanart'
 
 
-class ListImage(ContainerCacheOnlyDirectory):
-    def get_items(self, tmdb_id, tmdb_type, season=None, episode=None, limit=None, sort_by=None, sort_how=None, **kwargs):
-        sync = BaseViewFactory('image', tmdb_type, tmdb_id, season, episode, filters=self.filters, limit=limit, sort_by=sort_by, sort_how=sort_how)
-        self.container_content = convert_type('image', 'container')
-        return sync.data
+class ListPoster(ListImageViewBase):
+    view_name = 'poster'
 
 
-class ListThumb(ContainerCacheOnlyDirectory):
-    def get_items(self, tmdb_id, tmdb_type, season=None, episode=None, limit=None, sort_by=None, sort_how=None, **kwargs):
-        sync = BaseViewFactory('thumb', tmdb_type, tmdb_id, season, episode, filters=self.filters, limit=limit, sort_by=sort_by, sort_how=sort_how)
-        self.container_content = convert_type('image', 'container')
-        return sync.data
+class ListImage(ListImageViewBase):
+    view_name = 'image'
+
+
+class ListThumb(ListImageViewBase):
+    view_name = 'thumb'
 
 
 class ListCast(ContainerCacheOnlyDirectory):
