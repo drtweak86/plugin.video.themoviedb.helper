@@ -95,34 +95,33 @@ class ListCrew(ListPersonListViewBase):
     view_name = 'crewmember'
 
 
-class ListSeries(ContainerDefaultCacheDirectory):
+class ListPersonOrCollectionViewBase(ContainerDefaultCacheDirectory):
+    view_name = None
+    base_tmdb_type = 'person'
+    kodi_db_type = 'movie'
+    content_type = 'movie'
 
     @ListConfigureOffset
     def get_items(self, tmdb_id, limit=None, sort_by=None, sort_how=None, offset=None, **kwargs):
-        sync = BaseViewFactory('seriesmovies', 'collection', tmdb_id, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
-        self.kodi_db = self.get_kodi_database('movie')
-        self.container_content = convert_type('movie', 'container')
+        sync = BaseViewFactory(self.view_name, self.base_tmdb_type, tmdb_id, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
+        self.kodi_db = self.get_kodi_database(self.kodi_db_type)
+        self.container_content = convert_type(self.content_type, 'container')
         return sync.data
 
 
-class ListStarredMovies(ContainerDefaultCacheDirectory):
-
-    @ListConfigureOffset
-    def get_items(self, tmdb_id, limit=None, sort_by=None, sort_how=None, offset=None, **kwargs):
-        sync = BaseViewFactory('starredmovies', 'person', tmdb_id, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
-        self.kodi_db = self.get_kodi_database('movie')
-        self.container_content = convert_type('movie', 'container')
-        return sync.data
+class ListSeries(ListPersonOrCollectionViewBase):
+    view_name = 'seriesmovies'
+    base_tmdb_type = 'collection'
 
 
-class ListStarredTvshows(ContainerDefaultCacheDirectory):
+class ListStarredMovies(ListPersonOrCollectionViewBase):
+    view_name = 'starredmovies'
 
-    @ListConfigureOffset
-    def get_items(self, tmdb_id, limit=None, sort_by=None, sort_how=None, offset=None, **kwargs):
-        sync = BaseViewFactory('starredtvshows', 'person', tmdb_id, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
-        self.kodi_db = self.get_kodi_database('tv')
-        self.container_content = convert_type('tv', 'container')
-        return sync.data
+
+class ListStarredTvshows(ListPersonOrCollectionViewBase):
+    view_name = 'starredtvshows'
+    kodi_db_type = 'tv'
+    content_type = 'tv'
 
 
 class ListStarredCombined(ContainerDefaultCacheDirectory):
@@ -140,24 +139,14 @@ class ListStarredCombined(ContainerDefaultCacheDirectory):
         return sync.data
 
 
-class ListCrewedMovies(ContainerDefaultCacheDirectory):
-
-    @ListConfigureOffset
-    def get_items(self, tmdb_id, limit=None, sort_by=None, sort_how=None, offset=None, **kwargs):
-        sync = BaseViewFactory('crewedmovies', 'person', tmdb_id, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
-        self.kodi_db = self.get_kodi_database('movie')
-        self.container_content = convert_type('movie', 'container')
-        return sync.data
+class ListCrewedMovies(ListPersonOrCollectionViewBase):
+    view_name = 'crewedmovies'
 
 
-class ListCrewedTvshows(ContainerDefaultCacheDirectory):
-
-    @ListConfigureOffset
-    def get_items(self, tmdb_id, limit=None, sort_by=None, sort_how=None, offset=None, **kwargs):
-        sync = BaseViewFactory('crewedtvshows', 'person', tmdb_id, filters=self.filters, limit=limit, offset=offset, sort_by=sort_by, sort_how=sort_how)
-        self.kodi_db = self.get_kodi_database('tv')
-        self.container_content = convert_type('tv', 'container')
-        return sync.data
+class ListCrewedTvshows(ListPersonOrCollectionViewBase):
+    view_name = 'crewedtvshows'
+    kodi_db_type = 'tv'
+    content_type = 'tv'
 
 
 class ListCrewedCombined(ContainerDefaultCacheDirectory):
