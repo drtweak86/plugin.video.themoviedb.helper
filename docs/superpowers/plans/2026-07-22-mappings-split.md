@@ -4,7 +4,7 @@
 
 **Goal:** Split the 1059-line `ItemMapperMethods` class in `mappings.py` into 7 single-concern mixin classes plus a support module, recombined into a thin aggregate — zero behavior change, zero external API change — verified with real unit tests, not just syntax checks.
 
-**Architecture:** New package `resources/tmdbhelper/lib/items/database/mappings/` holds one file per concern (`support.py`, `general.py`, `art.py`, `genre.py`, `credits.py`, `translations.py`, `movie.py`, `tv.py`). `resources/tmdbhelper/lib/items/database/mappings.py` shrinks to `BlankNoneDict` + a one-line `ItemMapperMethods` aggregate + the unchanged `ItemMapper` class. Every method moves verbatim; cross-mixin calls already go through `self.` or the literal `ItemMapperMethods.` class name, both of which resolve correctly through the aggregate's inherited MRO regardless of which mixin actually defines the method.
+**Architecture:** New package `resources/tmdbhelper/lib/items/database/mappings/` holds one file per concern (`support.py`, `general.py`, `art.py`, `genre.py`, `credits.py`, `translations.py`, `movie.py`, `tv.py`). `resources/tmdbhelper/lib/items/database/mappings/__init__.py` shrinks to `BlankNoneDict` + a one-line `ItemMapperMethods` aggregate + the unchanged `ItemMapper` class. Every method moves verbatim; cross-mixin calls already go through `self.` or the literal `ItemMapperMethods.` class name, both of which resolve correctly through the aggregate's inherited MRO regardless of which mixin actually defines the method.
 
 **Tech Stack:** Python 3, stdlib `unittest` (pytest is not installed on this machine — confirmed via `python3 -m pytest` → `ModuleNotFoundError`). Most of `mappings.py` has zero `xbmc`/`xbmcgui` imports at module level and was confirmed to import and run correctly in a plain Python process via `sys.path` manipulation — this is genuine TDD, not just `py_compile`.
 
@@ -13,7 +13,7 @@
 - Spec source of truth: `docs/superpowers/specs/2026-07-22-mappings-split-design.md`.
 - Branch: `refactor/tmdb-helper-cleanup` (already checked out, working tree clean at plan-writing time). Commit after every task.
 - Zero behavior change, zero external API change. `ItemMapper.__init__`, `map_dict`, `get_empty_item`, `get_info` are never edited. No method is renamed — only relocated.
-- New `mappings/` package directory has **no `__init__.py`** — this codebase's `baseitem_factories/concrete_classes/` and `basemeta_factories/concrete_classes/` directories (confirmed via `ls`) use PEP 420 implicit namespace packages, and this design follows that convention.
+- The new `mappings/` package directory's `__init__.py` **is** the old `mappings.py` — Python cannot resolve a `mappings.py` module and a same-named sibling `mappings/` package directory at once (verified empirically: the `.py` file wins import resolution and the directory becomes entirely unreachable as a subpackage). The original spec assumed no `__init__.py` was needed, following the `baseitem_factories/concrete_classes/`-style implicit-namespace-package convention used elsewhere in this codebase — that assumption was wrong for this specific case, since `mappings.py` must keep existing as *something* importable at `tmdbhelper.lib.items.database.mappings` for `ItemMapper` to stay reachable at its unchanged path. `mappings/__init__.py` is that something. All mixin files (`support.py`, `general.py`, etc.) remain plain sibling modules with no `__init__.py` of their own — only the aggregate file needed the rename.
 - Test runner: stdlib `unittest`, invoked as `python3 -m unittest discover -s tests -v` (or `python3 -m unittest tests.test_X -v` for one file) from the repo root `/home/frankie/GitHub/plugin.video.themoviedb.helper`.
 - Every test file starts with `from tests import _bootstrap  # noqa: F401` (a shared module created in Task 1) before any `tmdbhelper` import — this sets up `sys.path` so `tmdbhelper.lib.*` and `jurialmunkey.*` resolve without a running Kodi instance. Verified working pattern — do not invent a different import-path trick.
 - `get_custom_date` (moves to `general.py` in Task 3) has **no unit test** — it has a real, traced dependency on Kodi's region/locale formatting (`tmdbhelper.lib.addon.tmdate.get_region_date` calls a Kodi API that needs a real locale string back; stubbing `xbmc`/`xbmcaddon`/`xbmcgui`/`xbmcplugin`/`xbmcvfs` as `MagicMock()` still fails inside `strftime()`). This is unchanged, pre-existing behavior — not a new gap from this refactor. Verify with `py_compile` only, and note this explicitly in a code comment at the method.
@@ -105,7 +105,7 @@ git commit -m "test: add unittest bootstrap for tmdbhelper without a running Kod
 **Files:**
 - Create: `resources/tmdbhelper/lib/items/database/mappings/support.py`
 - Create: `tests/test_mappings_support.py`
-- Modify: `resources/tmdbhelper/lib/items/database/mappings.py:1-14` (remove what moved, replace with an import)
+- Modify: `resources/tmdbhelper/lib/items/database/mappings/__init__.py:1-14` (remove what moved, replace with an import)
 
 **Interfaces:**
 - Consumes: nothing.
@@ -190,7 +190,7 @@ Expected: `OK` (6 tests passed).
 
 - [ ] **Step 5: Update `mappings.py` to import from the new module**
 
-In `resources/tmdbhelper/lib/items/database/mappings.py`, replace lines 1-21:
+In `resources/tmdbhelper/lib/items/database/mappings/__init__.py`, replace lines 1-21:
 
 ```python
 #!/usr/bin/python
@@ -230,7 +230,7 @@ Do not touch anything else in the file yet — the rest of `ItemMapperMethods` s
 
 - [ ] **Step 6: Verify the whole file still compiles**
 
-Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings.py resources/tmdbhelper/lib/items/database/mappings/support.py`
+Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings/__init__.py resources/tmdbhelper/lib/items/database/mappings/support.py`
 Expected: no output, exit code 0.
 
 - [ ] **Step 7: Re-run the smoke test to confirm nothing broke**
@@ -241,7 +241,7 @@ Expected: `OK` (7 tests total: 1 smoke + 6 support).
 - [ ] **Step 8: Commit**
 
 ```bash
-git add resources/tmdbhelper/lib/items/database/mappings/support.py resources/tmdbhelper/lib/items/database/mappings.py tests/test_mappings_support.py
+git add resources/tmdbhelper/lib/items/database/mappings/support.py resources/tmdbhelper/lib/items/database/mappings/__init__.py tests/test_mappings_support.py
 git commit -m "refactor(mappings): extract ExtendedMap/get_blanks_none/FTV consts into support.py"
 ```
 
@@ -252,7 +252,7 @@ git commit -m "refactor(mappings): extract ExtendedMap/get_blanks_none/FTV const
 **Files:**
 - Create: `resources/tmdbhelper/lib/items/database/mappings/general.py`
 - Create: `tests/test_mappings_general.py`
-- Modify: `resources/tmdbhelper/lib/items/database/mappings.py` (remove the moved methods from `ItemMapperMethods`)
+- Modify: `resources/tmdbhelper/lib/items/database/mappings/__init__.py` (remove the moved methods from `ItemMapperMethods`)
 
 **Interfaces:**
 - Consumes: `ExtendedMap`, `get_blanks_none` from `tmdbhelper.lib.items.database.mappings.support` (Task 2).
@@ -567,17 +567,17 @@ Expected: `OK` (16 tests passed). This will fail at `test_get_media_item_data_bu
 
 - [ ] **Step 5: Remove the moved methods from `mappings.py`**
 
-In `resources/tmdbhelper/lib/items/database/mappings.py`, remove the `get_runtime`, `get_configured_item`, `split_array`, `get_custom_time`, `get_custom_date`, `get_custom_property`, `get_unique_ids`, `get_video`, and `get_media_item_data` method definitions from `ItemMapperMethods` (they now live in `general.py`). Leave every other method in the class untouched for now — `mappings.py` still has the rest of `ItemMapperMethods` until Tasks 4-9 extract them too.
+In `resources/tmdbhelper/lib/items/database/mappings/__init__.py`, remove the `get_runtime`, `get_configured_item`, `split_array`, `get_custom_time`, `get_custom_date`, `get_custom_property`, `get_unique_ids`, `get_video`, and `get_media_item_data` method definitions from `ItemMapperMethods` (they now live in `general.py`). Leave every other method in the class untouched for now — `mappings.py` still has the rest of `ItemMapperMethods` until Tasks 4-9 extract them too.
 
 - [ ] **Step 6: Verify everything still compiles**
 
-Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings.py resources/tmdbhelper/lib/items/database/mappings/general.py`
+Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings/__init__.py resources/tmdbhelper/lib/items/database/mappings/general.py`
 Expected: no output, exit code 0.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add resources/tmdbhelper/lib/items/database/mappings/general.py resources/tmdbhelper/lib/items/database/mappings.py tests/test_mappings_general.py
+git add resources/tmdbhelper/lib/items/database/mappings/general.py resources/tmdbhelper/lib/items/database/mappings/__init__.py tests/test_mappings_general.py
 git commit -m "refactor(mappings): extract GeneralMapperMethods into general.py"
 ```
 
@@ -588,7 +588,7 @@ git commit -m "refactor(mappings): extract GeneralMapperMethods into general.py"
 **Files:**
 - Create: `resources/tmdbhelper/lib/items/database/mappings/art.py`
 - Create: `tests/test_mappings_art.py`
-- Modify: `resources/tmdbhelper/lib/items/database/mappings.py` (remove the moved methods)
+- Modify: `resources/tmdbhelper/lib/items/database/mappings/__init__.py` (remove the moved methods)
 
 **Interfaces:**
 - Consumes: `ExtendedMap`, `get_blanks_none` from `support.py` (Task 2); `FTV_WITHOUT_SEASONS`/`FTV_TVSHOWS_SEASONS`/`FTV_SEASONS_SEASONS` also from `support.py`.
@@ -858,17 +858,17 @@ Expected: `OK` (16 tests passed) — `test_get_media_item_data_builds_movie_entr
 
 - [ ] **Step 6: Remove the moved methods from `mappings.py`**
 
-In `resources/tmdbhelper/lib/items/database/mappings.py`, remove the `add_art_type`, `get_fanart_tv`, `get_aspect_ratio`, `get_art`, `set_default_art`, `get_default_art` method definitions from `ItemMapperMethods`.
+In `resources/tmdbhelper/lib/items/database/mappings/__init__.py`, remove the `add_art_type`, `get_fanart_tv`, `get_aspect_ratio`, `get_art`, `set_default_art`, `get_default_art` method definitions from `ItemMapperMethods`.
 
 - [ ] **Step 7: Verify everything still compiles**
 
-Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings.py resources/tmdbhelper/lib/items/database/mappings/art.py`
+Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings/__init__.py resources/tmdbhelper/lib/items/database/mappings/art.py`
 Expected: no output, exit code 0.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add resources/tmdbhelper/lib/items/database/mappings/art.py resources/tmdbhelper/lib/items/database/mappings.py tests/test_mappings_art.py
+git add resources/tmdbhelper/lib/items/database/mappings/art.py resources/tmdbhelper/lib/items/database/mappings/__init__.py tests/test_mappings_art.py
 git commit -m "refactor(mappings): extract ArtMapperMethods into art.py"
 ```
 
@@ -879,7 +879,7 @@ git commit -m "refactor(mappings): extract ArtMapperMethods into art.py"
 **Files:**
 - Create: `resources/tmdbhelper/lib/items/database/mappings/genre.py`
 - Create: `tests/test_mappings_genre.py`
-- Modify: `resources/tmdbhelper/lib/items/database/mappings.py` (remove the moved methods)
+- Modify: `resources/tmdbhelper/lib/items/database/mappings/__init__.py` (remove the moved methods)
 
 **Interfaces:**
 - Consumes: `GeneralMapperMethods` from `general.py` (Task 3) — `get_genres` calls `GeneralMapperMethods.split_array(...)` directly (see the note after the code block in Step 3 for why this one call uses the class name instead of `self.`).
@@ -991,17 +991,17 @@ Expected: `OK` (4 tests passed).
 
 - [ ] **Step 5: Remove the moved methods from `mappings.py`**
 
-In `resources/tmdbhelper/lib/items/database/mappings.py`, remove the `tmdb_database`, `genres_map`, `get_genre_items`, `get_genres` definitions from `ItemMapperMethods`. Also remove the now-unused `from jurialmunkey.ftools import cached_property` import from the top of `mappings.py` if nothing else in the file still uses `cached_property` — check with `grep -n cached_property resources/tmdbhelper/lib/items/database/mappings.py` first; if `ItemMapper` or `BlankNoneDict` don't reference it, remove the import.
+In `resources/tmdbhelper/lib/items/database/mappings/__init__.py`, remove the `tmdb_database`, `genres_map`, `get_genre_items`, `get_genres` definitions from `ItemMapperMethods`. Also remove the now-unused `from jurialmunkey.ftools import cached_property` import from the top of `mappings.py` if nothing else in the file still uses `cached_property` — check with `grep -n cached_property resources/tmdbhelper/lib/items/database/mappings/__init__.py` first; if `ItemMapper` or `BlankNoneDict` don't reference it, remove the import.
 
 - [ ] **Step 6: Verify everything still compiles**
 
-Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings.py resources/tmdbhelper/lib/items/database/mappings/genre.py`
+Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings/__init__.py resources/tmdbhelper/lib/items/database/mappings/genre.py`
 Expected: no output, exit code 0.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add resources/tmdbhelper/lib/items/database/mappings/genre.py resources/tmdbhelper/lib/items/database/mappings.py tests/test_mappings_genre.py
+git add resources/tmdbhelper/lib/items/database/mappings/genre.py resources/tmdbhelper/lib/items/database/mappings/__init__.py tests/test_mappings_genre.py
 git commit -m "refactor(mappings): extract GenreMapperMethods into genre.py"
 ```
 
@@ -1012,7 +1012,7 @@ git commit -m "refactor(mappings): extract GenreMapperMethods into genre.py"
 **Files:**
 - Create: `resources/tmdbhelper/lib/items/database/mappings/credits.py`
 - Create: `tests/test_mappings_credits.py`
-- Modify: `resources/tmdbhelper/lib/items/database/mappings.py` (remove the moved methods)
+- Modify: `resources/tmdbhelper/lib/items/database/mappings/__init__.py` (remove the moved methods)
 
 **Interfaces:**
 - Consumes: `ExtendedMap` from `support.py` (Task 2); `GeneralMapperMethods` from `general.py` (Task 3, for `get_configured_item` and `get_media_item_data`); `ArtMapperMethods` from `art.py` (Task 4, for `set_default_art`).
@@ -1192,17 +1192,17 @@ Expected: `OK` (3 tests passed).
 
 - [ ] **Step 5: Remove the moved methods from `mappings.py`**
 
-In `resources/tmdbhelper/lib/items/database/mappings.py`, remove the `credits_mappings` class constant and the `get_credits`, `get_aggregate_credits`, `get_credits_data`, `get_person_movie_credits_data`, `get_person_tv_credits_data`, `get_person_credits_data` method definitions from `ItemMapperMethods`.
+In `resources/tmdbhelper/lib/items/database/mappings/__init__.py`, remove the `credits_mappings` class constant and the `get_credits`, `get_aggregate_credits`, `get_credits_data`, `get_person_movie_credits_data`, `get_person_tv_credits_data`, `get_person_credits_data` method definitions from `ItemMapperMethods`.
 
 - [ ] **Step 6: Verify everything still compiles**
 
-Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings.py resources/tmdbhelper/lib/items/database/mappings/credits.py`
+Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings/__init__.py resources/tmdbhelper/lib/items/database/mappings/credits.py`
 Expected: no output, exit code 0.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add resources/tmdbhelper/lib/items/database/mappings/credits.py resources/tmdbhelper/lib/items/database/mappings.py tests/test_mappings_credits.py
+git add resources/tmdbhelper/lib/items/database/mappings/credits.py resources/tmdbhelper/lib/items/database/mappings/__init__.py tests/test_mappings_credits.py
 git commit -m "refactor(mappings): extract CreditsMapperMethods into credits.py"
 ```
 
@@ -1213,7 +1213,7 @@ git commit -m "refactor(mappings): extract CreditsMapperMethods into credits.py"
 **Files:**
 - Create: `resources/tmdbhelper/lib/items/database/mappings/translations.py`
 - Create: `tests/test_mappings_translations.py`
-- Modify: `resources/tmdbhelper/lib/items/database/mappings.py` (remove the moved methods)
+- Modify: `resources/tmdbhelper/lib/items/database/mappings/__init__.py` (remove the moved methods)
 
 **Interfaces:**
 - Consumes: `get_blanks_none` from `support.py` (Task 2).
@@ -1366,17 +1366,17 @@ Expected: `OK` (6 tests passed).
 
 - [ ] **Step 5: Remove the moved methods from `mappings.py`**
 
-In `resources/tmdbhelper/lib/items/database/mappings.py`, remove the `get_providers`, `get_translations`, `get_certifications` method definitions from `ItemMapperMethods`.
+In `resources/tmdbhelper/lib/items/database/mappings/__init__.py`, remove the `get_providers`, `get_translations`, `get_certifications` method definitions from `ItemMapperMethods`.
 
 - [ ] **Step 6: Verify everything still compiles**
 
-Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings.py resources/tmdbhelper/lib/items/database/mappings/translations.py`
+Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings/__init__.py resources/tmdbhelper/lib/items/database/mappings/translations.py`
 Expected: no output, exit code 0.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add resources/tmdbhelper/lib/items/database/mappings/translations.py resources/tmdbhelper/lib/items/database/mappings.py tests/test_mappings_translations.py
+git add resources/tmdbhelper/lib/items/database/mappings/translations.py resources/tmdbhelper/lib/items/database/mappings/__init__.py tests/test_mappings_translations.py
 git commit -m "refactor(mappings): extract TranslationMapperMethods into translations.py"
 ```
 
@@ -1387,7 +1387,7 @@ git commit -m "refactor(mappings): extract TranslationMapperMethods into transla
 **Files:**
 - Create: `resources/tmdbhelper/lib/items/database/mappings/movie.py`
 - Create: `tests/test_mappings_movie.py`
-- Modify: `resources/tmdbhelper/lib/items/database/mappings.py` (remove the moved methods)
+- Modify: `resources/tmdbhelper/lib/items/database/mappings/__init__.py` (remove the moved methods)
 
 **Interfaces:**
 - Consumes: `ExtendedMap` from `support.py` (Task 2); `ArtMapperMethods` from `art.py` (Task 4, for `set_default_art`); `GeneralMapperMethods` from `general.py` (Task 3, for `get_configured_item`; also relies on `self.get_media_item_data`, present via the aggregate).
@@ -1542,17 +1542,17 @@ Expected: `OK` (4 tests passed).
 
 - [ ] **Step 5: Remove the moved methods from `mappings.py`**
 
-In `resources/tmdbhelper/lib/items/database/mappings.py`, remove the `get_belongs_to_collection`, `get_collection`, `get_parts` method definitions from `ItemMapperMethods`.
+In `resources/tmdbhelper/lib/items/database/mappings/__init__.py`, remove the `get_belongs_to_collection`, `get_collection`, `get_parts` method definitions from `ItemMapperMethods`.
 
 - [ ] **Step 6: Verify everything still compiles**
 
-Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings.py resources/tmdbhelper/lib/items/database/mappings/movie.py`
+Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings/__init__.py resources/tmdbhelper/lib/items/database/mappings/movie.py`
 Expected: no output, exit code 0.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add resources/tmdbhelper/lib/items/database/mappings/movie.py resources/tmdbhelper/lib/items/database/mappings.py tests/test_mappings_movie.py
+git add resources/tmdbhelper/lib/items/database/mappings/movie.py resources/tmdbhelper/lib/items/database/mappings/__init__.py tests/test_mappings_movie.py
 git commit -m "refactor(mappings): extract MovieMapperMethods into movie.py"
 ```
 
@@ -1563,7 +1563,7 @@ git commit -m "refactor(mappings): extract MovieMapperMethods into movie.py"
 **Files:**
 - Create: `resources/tmdbhelper/lib/items/database/mappings/tv.py`
 - Create: `tests/test_mappings_tv.py`
-- Modify: `resources/tmdbhelper/lib/items/database/mappings.py` (remove the moved methods)
+- Modify: `resources/tmdbhelper/lib/items/database/mappings/__init__.py` (remove the moved methods)
 
 **Interfaces:**
 - Consumes: `ExtendedMap` from `support.py` (Task 2); `GeneralMapperMethods` from `general.py` (Task 3, for `get_configured_item`, and relies on `self.get_runtime`/`self.get_episode_type` present via the aggregate); `ArtMapperMethods` from `art.py` (Task 4, for `add_art_type` and `set_default_art`).
@@ -1875,17 +1875,17 @@ Expected: `OK` (8 tests passed).
 
 - [ ] **Step 5: Remove the moved methods from `mappings.py`**
 
-In `resources/tmdbhelper/lib/items/database/mappings.py`, remove the `get_episode_type`, `get_episode_to_air`, `get_episodes`, `get_seasons`, `get_creators` method definitions from `ItemMapperMethods`. After this step, `ItemMapperMethods` in `mappings.py` should have **no method bodies left** — every method has moved to one of the seven mixin files. Only the class statement itself remains (see Task 10 for what replaces it).
+In `resources/tmdbhelper/lib/items/database/mappings/__init__.py`, remove the `get_episode_type`, `get_episode_to_air`, `get_episodes`, `get_seasons`, `get_creators` method definitions from `ItemMapperMethods`. After this step, `ItemMapperMethods` in `mappings.py` should have **no method bodies left** — every method has moved to one of the seven mixin files. Only the class statement itself remains (see Task 10 for what replaces it).
 
 - [ ] **Step 6: Verify everything still compiles**
 
-Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings.py resources/tmdbhelper/lib/items/database/mappings/tv.py`
+Run: `python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings/__init__.py resources/tmdbhelper/lib/items/database/mappings/tv.py`
 Expected: no output, exit code 0.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add resources/tmdbhelper/lib/items/database/mappings/tv.py resources/tmdbhelper/lib/items/database/mappings.py tests/test_mappings_tv.py
+git add resources/tmdbhelper/lib/items/database/mappings/tv.py resources/tmdbhelper/lib/items/database/mappings/__init__.py tests/test_mappings_tv.py
 git commit -m "refactor(mappings): extract TVMapperMethods into tv.py"
 ```
 
@@ -1894,7 +1894,7 @@ git commit -m "refactor(mappings): extract TVMapperMethods into tv.py"
 ### Task 10: Rebuild `mappings.py` as a thin aggregate and verify the whole suite
 
 **Files:**
-- Modify: `resources/tmdbhelper/lib/items/database/mappings.py` (replace the now-empty `ItemMapperMethods` class body with the aggregate)
+- Modify: `resources/tmdbhelper/lib/items/database/mappings/__init__.py` (replace the now-empty `ItemMapperMethods` class body with the aggregate)
 - Create: `tests/test_mappings_aggregate.py`
 
 **Interfaces:**
@@ -1978,7 +1978,7 @@ Expected: `AssertionError: ItemMapperMethods is missing get_runtime` (or similar
 
 - [ ] **Step 3: Replace the empty `ItemMapperMethods` class with the aggregate**
 
-In `resources/tmdbhelper/lib/items/database/mappings.py`, the file should currently look like (imports plus an empty `ItemMapperMethods` class, plus `BlankNoneDict` and `ItemMapper` unchanged below). Replace the imports and the `ItemMapperMethods` class definition with:
+In `resources/tmdbhelper/lib/items/database/mappings/__init__.py`, the file should currently look like (imports plus an empty `ItemMapperMethods` class, plus `BlankNoneDict` and `ItemMapper` unchanged below). Replace the imports and the `ItemMapperMethods` class definition with:
 
 ```python
 #!/usr/bin/python
@@ -2005,7 +2005,7 @@ class ItemMapperMethods(
     pass
 ```
 
-Do not remove the `ExtendedMap`/`get_blanks_none` import from Task 2 if anything else in `mappings.py` still references them directly — check with `grep -n "ExtendedMap\|get_blanks_none" resources/tmdbhelper/lib/items/database/mappings.py` after this edit; if the only remaining references were inside the now-removed `ItemMapperMethods` method bodies, remove that import line too (it would be unused and `py_compile` won't catch an unused import, but leave the codebase clean).
+Do not remove the `ExtendedMap`/`get_blanks_none` import from Task 2 if anything else in `mappings.py` still references them directly — check with `grep -n "ExtendedMap\|get_blanks_none" resources/tmdbhelper/lib/items/database/mappings/__init__.py` after this edit; if the only remaining references were inside the now-removed `ItemMapperMethods` method bodies, remove that import line too (it would be unused and `py_compile` won't catch an unused import, but leave the codebase clean).
 
 Everything below this point in the file — `BlankNoneDict` and the entire `ItemMapper` class (`__init__`, `map_dict`, `get_empty_item`, `get_info`) — is **completely unchanged**, byte-for-byte, from before this whole refactor started.
 
@@ -2023,7 +2023,7 @@ Expected: `OK` — every test from Tasks 1-10 passes (60 tests total: 1 smoke + 
 
 Run:
 ```bash
-python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings.py \
+python3 -m py_compile resources/tmdbhelper/lib/items/database/mappings/__init__.py \
   resources/tmdbhelper/lib/items/database/mappings/support.py \
   resources/tmdbhelper/lib/items/database/mappings/general.py \
   resources/tmdbhelper/lib/items/database/mappings/art.py \
@@ -2043,7 +2043,7 @@ Expected: every result imports only `ItemMapper` (or nothing that changed) — s
 - [ ] **Step 8: Commit**
 
 ```bash
-git add resources/tmdbhelper/lib/items/database/mappings.py tests/test_mappings_aggregate.py
+git add resources/tmdbhelper/lib/items/database/mappings/__init__.py tests/test_mappings_aggregate.py
 git commit -m "refactor(mappings): rebuild ItemMapperMethods as a thin aggregate of the 7 split mixins"
 ```
 
