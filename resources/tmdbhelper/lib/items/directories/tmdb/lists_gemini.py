@@ -1,5 +1,6 @@
 from xbmcgui import Dialog, INPUT_ALPHANUM
 from tmdbhelper.lib.addon.plugin import get_localized, convert_type
+from tmdbhelper.lib.addon.logger import kodi_log
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.parser import try_int
 
@@ -37,8 +38,13 @@ class ListGemini(ContainerDefaultCacheDirectory):
         from tmdbhelper.lib.addon.dialog import BusyDialog
         with BusyDialog():
             data = self.gemini.get_prompt_items(self.query)
-            if not data and self.gemini.is_rate_limited and self.openrouter.api_key:
+            if data:
+                kodi_log(f'Ask Gemini: served by Gemini for query "{self.query}"', 1)
+            elif self.gemini.is_rate_limited and self.openrouter.api_key:
+                kodi_log(f'Ask Gemini: Gemini rate-limited, falling back to OpenRouter for query "{self.query}"', 1)
                 data = self.openrouter.get_prompt_items(self.query)
+                if data:
+                    kodi_log(f'Ask Gemini: served by OpenRouter for query "{self.query}"', 1)
         return data
 
     def get_items(self, query=None, tmdb_type=None, limit=None, **kwargs):
