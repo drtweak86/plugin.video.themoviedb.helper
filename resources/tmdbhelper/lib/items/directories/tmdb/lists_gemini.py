@@ -17,6 +17,11 @@ class TraktWatchedChecker(DatabaseAccess):
         return ItemDetailsDatabase()
 
     def is_watched(self, tmdb_type, tmdb_id):
+        # Reads whatever the existing Trakt sync has already populated in simplecache;
+        # deliberately doesn't trigger a sync itself. If this row hasn't been synced yet
+        # (e.g. right after a DB migration drops simplecache) this returns False, which
+        # is the intended fail-open behavior -- a title may briefly slip through unfiltered
+        # rather than being wrongly excluded.
         key = 'plays' if tmdb_type == 'movie' else 'watched_episodes'
         item_id = f'{tmdb_type}.{tmdb_id}'
         values = self.get_cached_values('simplecache', item_id, (key,))
