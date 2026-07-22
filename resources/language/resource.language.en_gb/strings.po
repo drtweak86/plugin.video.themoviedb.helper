@@ -2716,6 +2716,16 @@ msgid "Gemini responded, but no results could be matched in your local database.
 msgstr ""
 
 #: /resources/settings.xml
+msgctxt "#32542"
+msgid "OpenRouter API"
+msgstr ""
+
+#: /resources/settings.xml
+msgctxt "#32543"
+msgid "OpenRouter API key"
+msgstr ""
+
+#: /resources/settings.xml
 msgctxt "#32544"
 msgid "Cast list limit"
 msgstr ""

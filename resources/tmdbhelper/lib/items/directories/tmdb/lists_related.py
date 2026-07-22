@@ -4,6 +4,8 @@ from jurialmunkey.ftools import cached_property
 
 
 class ListRelatedProperties(ListStandardProperties):
+    title_preposition = 'for'
+
     @cached_property
     def url(self):
         return self.request_url.format(tmdb_type=self.tmdb_type, tmdb_id=self.tmdb_id)
@@ -29,6 +31,13 @@ class ListRelatedProperties(ListStandardProperties):
         except (KeyError, TypeError, AttributeError):
             return ''
 
+    @cached_property
+    def plugin_category(self):
+        base = self.plugin_name.format(localized=self.localized, plural=self.plural)
+        if self.item_title:
+            return f'{base} {self.title_preposition} {self.item_title}'
+        return base
+
 
 class ListRelated(ListStandard):
     list_properties_class = ListRelatedProperties
@@ -42,7 +51,7 @@ class ListRecommendations(ListRelated):
 
     def configure_list_properties(self, list_properties):
         list_properties = super().configure_list_properties(list_properties)
-        list_properties.plugin_name = f'{{localized}} for {list_properties.item_title}' if list_properties.item_title else '{localized}'
+        list_properties.plugin_name = '{localized}'
         list_properties.dbid_sorted = True
         list_properties.request_url = '{tmdb_type}/{tmdb_id}/recommendations'
         list_properties.localize = 32223
@@ -55,7 +64,8 @@ class ListSimilar(ListRelated):
 
     def configure_list_properties(self, list_properties):
         list_properties = super().configure_list_properties(list_properties)
-        list_properties.plugin_name = f'{{localized}} to {list_properties.item_title}' if list_properties.item_title else '{localized}'
+        list_properties.plugin_name = '{localized}'
+        list_properties.title_preposition = 'to'
         list_properties.dbid_sorted = True
         list_properties.request_url = '{tmdb_type}/{tmdb_id}/similar'
         list_properties.localize = 32224
@@ -66,7 +76,7 @@ class ListReviews(ListRelated):
 
     def configure_list_properties(self, list_properties):
         list_properties = super().configure_list_properties(list_properties)
-        list_properties.plugin_name = f'{{localized}} for {list_properties.item_title}' if list_properties.item_title else '{localized}'
+        list_properties.plugin_name = '{localized}'
         list_properties.dbid_sorted = True
         list_properties.request_url = '{tmdb_type}/{tmdb_id}/reviews'
         list_properties.tmdb_type = 'review'
@@ -81,7 +91,7 @@ class ListKeywords(ListRelated):
 
     def configure_list_properties(self, list_properties):
         list_properties = super().configure_list_properties(list_properties)
-        list_properties.plugin_name = f'{{localized}} for {list_properties.item_title}' if list_properties.item_title else '{localized}'
+        list_properties.plugin_name = '{localized}'
         list_properties.request_url = 'movie/{tmdb_id}/keywords'
         list_properties.results_key = 'keywords'
         list_properties.tmdb_type = 'keyword'

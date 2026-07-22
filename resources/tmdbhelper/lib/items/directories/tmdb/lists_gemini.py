@@ -24,6 +24,11 @@ class ListGemini(ContainerDefaultCacheDirectory):
         from tmdbhelper.lib.api.gemini.api import Gemini
         return Gemini()
 
+    @cached_property
+    def openrouter(self):
+        from tmdbhelper.lib.api.openrouter.api import OpenRouter
+        return OpenRouter()
+
     @ItemCache('ItemContainer.db')
     def get_cached_response(self):
         return self.get_prompt_items()
@@ -32,6 +37,8 @@ class ListGemini(ContainerDefaultCacheDirectory):
         from tmdbhelper.lib.addon.dialog import BusyDialog
         with BusyDialog():
             data = self.gemini.get_prompt_items(self.query)
+            if not data and self.gemini.is_rate_limited and self.openrouter.api_key:
+                data = self.openrouter.get_prompt_items(self.query)
         return data
 
     def get_items(self, query=None, tmdb_type=None, limit=None, **kwargs):

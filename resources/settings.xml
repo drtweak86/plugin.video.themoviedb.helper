@@ -523,6 +523,18 @@
                     <enable>false</enable>
                 </setting>
             </group>
+            <group id="8" label="32542">
+                <setting id="openrouter_apikey" type="string" label="32543" help="">
+                    <level>0</level>
+                    <default/>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string">
+                        <heading>32543</heading>
+                    </control>
+                </setting>
+            </group>
         </category>
         <category id="accounts" label="32470" help="">
             <group id="1" label="32031">
