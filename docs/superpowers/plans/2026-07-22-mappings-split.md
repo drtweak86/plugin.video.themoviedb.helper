@@ -1027,9 +1027,10 @@ import unittest
 
 from tests import _bootstrap  # noqa: F401
 from tmdbhelper.lib.items.database.mappings.credits import CreditsMapperMethods
+from tmdbhelper.lib.items.database.mappings.general import GeneralMapperMethods
 
 
-class FakeCredits(CreditsMapperMethods):
+class FakeCredits(CreditsMapperMethods, GeneralMapperMethods):
     tmdb_id = 550
     language = 'en'
 
@@ -1183,7 +1184,7 @@ class CreditsMapperMethods:
         return data
 ```
 
-Note: `get_person_credits_data` calls `self.get_media_item_data(i, tmdb_type)` — this comes from `GeneralMapperMethods` (Task 3) via the aggregate's MRO, same `self.`-based cross-mixin pattern used throughout. `CreditsMapperMethods` doesn't need to inherit from `GeneralMapperMethods` for this to work at runtime (only the final aggregate needs to combine both) — but the test above provides `get_genre_items` directly on `FakeCredits` since `get_media_item_data` needs it and the test doesn't go through the real aggregate.
+Note: `get_person_credits_data` calls `self.get_media_item_data(i, tmdb_type)` — this comes from `GeneralMapperMethods` (Task 3) via the aggregate's MRO, same `self.`-based cross-mixin pattern used throughout. `CreditsMapperMethods` itself doesn't need to inherit from `GeneralMapperMethods` for this to work at runtime (only the final aggregate needs to combine both) — but the test's `FakeCredits` fixture does need both parents (as shown above: `class FakeCredits(CreditsMapperMethods, GeneralMapperMethods)`), since the test calls a method chain that crosses from `CreditsMapperMethods` into `GeneralMapperMethods` via `self.` outside the real aggregate — without `GeneralMapperMethods` in `FakeCredits`'s own bases, `self.get_media_item_data` would raise `AttributeError`. `get_genre_items` is still overridden directly on `FakeCredits` since `get_media_item_data` needs it and neither parent defines it (it lives in `GenreMapperMethods`, not part of this test's fixture).
 
 - [ ] **Step 4: Run it to verify it passes**
 
