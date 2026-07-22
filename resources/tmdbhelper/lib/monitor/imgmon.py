@@ -1,10 +1,11 @@
 from tmdbhelper.lib.monitor.images import ImageManipulations
 from tmdbhelper.lib.monitor.poller import Poller, POLL_MIN_INCREMENT
 from tmdbhelper.lib.monitor.listitemgetter import ListItemInfoGetter
-from tmdbhelper.lib.addon.plugin import get_condvisibility
+from tmdbhelper.lib.addon.plugin import get_condvisibility, get_infolabel
 from tmdbhelper.lib.addon.tmdate import set_timestamp, get_timestamp
 from tmdbhelper.lib.addon.logger import kodi_try_except
 from tmdbhelper.lib.addon.thread import SafeThread
+from jurialmunkey.parser import try_int
 
 
 class RemoteArtwork:
@@ -52,7 +53,9 @@ class ImagesMonitor(SafeThread, ListItemInfoGetter, ImageManipulations, Poller):
         'Art(thumb)', 'Art(icon)',
     )
     _dbtype_refresh = ('', None, 'addon', 'file', 'genre', 'country', 'studio', 'year', 'tag', 'director')
-    _next_refresh_increment = 10  # Reupdate idle item every ten seconds for extrafanart TODO: Allow skin to set value?
+    @property
+    def _next_refresh_increment(self):
+        return try_int(get_infolabel('Skin.String(TMDbHelper.ArtRefreshInterval)')) or 10
     _this_refresh_increment = 3   # How long to wait for ListItem.Art() availability check
 
     _cond_current_window_images = "Skin.HasSetting(TMDbHelper.EnableCurrentWindowImages)"
