@@ -60,7 +60,23 @@ Each mixin file imports `ExtendedMap`/`get_blanks_none`/`FTV_*` from `support.py
 
 ## Testing
 
-No pytest suite in this repo (`xbmc`/`xbmcgui` only importable inside a running Kodi instance) — verification is `python3 -m py_compile` on every new/changed file, plus a manual live-Kodi check that a representative sample of item types still map correctly: a movie with a collection, a TV show with seasons/episodes/creators, and a person's combined movie+TV credits — since those are exactly the paths that exercise `MovieMapperMethods`, `TVMapperMethods`, and the credits dispatcher respectively. Since this is a pure reorganization with no behavior change, the practical test is "does everything still look the same as before" — any visible difference (missing art, missing genre, missing cast) is a regression.
+Revised from the original assumption of "no pytest suite possible" — verified empirically that `mappings.py` has **zero `xbmc`/`xbmcgui` imports at module level** (only `jurialmunkey.ftools.cached_property`, `tmdbhelper.lib.api.mapping._ItemMapper`, and stdlib `collections.namedtuple`), and confirmed by direct test that `ItemMapperMethods` imports and runs correctly in a plain Python process:
+
+```python
+import sys
+sys.path.insert(0, '/home/frankie/.kodi/addons/script.module.jurialmunkey/resources/modules')
+sys.path.insert(0, '/home/frankie/.kodi/addons/plugin.video.themoviedb.helper/resources/tmdbhelper/lib')
+sys.path.insert(0, '/home/frankie/.kodi/addons/plugin.video.themoviedb.helper/resources')
+import items.database.mappings as mappings
+mappings.ItemMapperMethods.get_runtime(90)  # -> 5400, correct
+```
+
+This means **real TDD is possible for this refactor**, not just `py_compile`. Approach, adapted from a proven pattern used on a prior project this session (`.kodi/reset-work`, which split Kodi-addon Python work into real `unittest`/pytest for xbmc-free modules and AST-based structural assertions for modules that import `xbmc` at load time and can't be executed directly):
+
+- **New `tests/` directory + `conftest.py` at the repo root** of `plugin.video.themoviedb.helper` (this repo is git-tracked, unlike the prior project's target — tests get committed alongside the code, not left in a scratch location). `conftest.py` does the `sys.path` setup shown above once, so individual test files don't repeat it.
+- **One test file per new mixin** (`test_general.py`, `test_art.py`, `test_genre.py`, `test_credits.py`, `test_translations.py`, `test_movie.py`, `test_tv.py`), each importing its mixin class directly and asserting real behavior on representative inputs — most methods here are pure dict/list transformations (e.g. `get_configured_item`, `split_array`, `get_translations`, `get_certifications`, `get_art`, `get_aspect_ratio`, `get_unique_ids`), which is exactly the kind of code real unit tests are best at.
+- **A handful of methods touch something Kodi-flavored via a lazy import inside the method body** (`get_custom_date` calls `tmdbhelper.lib.addon.plugin.get_infolabel`, which wraps `xbmc.getInfoLabel`; `tmdb_database` constructs a real `FindQueriesDatabase`, which opens a local sqlite file). These need either a small stub/monkeypatch (matching the existing prior-project pattern of substituting a stand-in for the one Kodi-touching call, e.g. its `SharedMemoryCache` stand-in for a live sqlite connection) or, if that proves awkward for a specific method, an AST-based structural test as a fallback — resolve this per-method at plan-writing time, not here.
+- **A manual live-Kodi check remains the final gate**, since unit tests on the mixins don't exercise the full `ItemMapper` integration path or the skin-rendering side: open a movie with a collection, a TV show with seasons/episodes/creators, and a person's combined movie+TV credits — those three exercise `MovieMapperMethods`, `TVMapperMethods`, and the credits dispatcher respectively. Any visible difference from pre-split behavior (missing art, missing genre, missing cast) is a regression, since this is a pure reorganization.
 
 ## Out of scope
 
