@@ -40,8 +40,10 @@ class ListGemini(ContainerDefaultCacheDirectory):
             data = self.gemini.get_prompt_items(self.query)
             if data:
                 kodi_log(f'Ask Gemini: served by Gemini for query "{self.query}"', 1)
-            elif self.gemini.is_rate_limited and self.openrouter.api_key:
-                kodi_log(f'Ask Gemini: Gemini rate-limited, falling back to OpenRouter for query "{self.query}"', 1)
+            elif self.openrouter.api_key:
+                status = getattr(self.gemini.last_response, 'status_code', None)
+                reason = 'rate-limited (429)' if self.gemini.is_rate_limited else f'status={status}'
+                kodi_log(f'Ask Gemini: Gemini failed ({reason}), falling back to OpenRouter for query "{self.query}"', 1)
                 data = self.openrouter.get_prompt_items(self.query)
                 if data:
                     kodi_log(f'Ask Gemini: served by OpenRouter for query "{self.query}"', 1)
