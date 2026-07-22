@@ -432,6 +432,16 @@
                         <heading>32148</heading>
                     </control>
                 </setting>
+                <setting id="gemini_exclude_watched" type="boolean" label="32546" help="">
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle"/>
+                    <dependencies>
+                        <dependency type="visible">
+                            <condition operator="!is" setting="trakt_token"/>
+                        </dependency>
+                    </dependencies>
+                </setting>
             </group>
             <group id="5" label="32030">
                 <setting id="fanarttv_clientkey" type="string" label="32019" help="">

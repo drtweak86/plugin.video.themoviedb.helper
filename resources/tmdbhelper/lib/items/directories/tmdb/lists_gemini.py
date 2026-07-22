@@ -1,11 +1,26 @@
 from xbmcgui import Dialog, INPUT_ALPHANUM
-from tmdbhelper.lib.addon.plugin import get_localized, convert_type
+from tmdbhelper.lib.addon.plugin import get_localized, convert_type, get_setting
 from tmdbhelper.lib.addon.logger import kodi_log
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.parser import try_int
 
 from tmdbhelper.lib.items.container import ContainerDefaultCacheDirectory
 from tmdbhelper.lib.items.directories.lists_default import ItemCache
+from tmdbhelper.lib.files.dbfunc import DatabaseAccess
+
+
+class TraktWatchedChecker(DatabaseAccess):
+
+    @cached_property
+    def cache(self):
+        from tmdbhelper.lib.items.database.database import ItemDetailsDatabase
+        return ItemDetailsDatabase()
+
+    def is_watched(self, tmdb_type, tmdb_id):
+        key = 'plays' if tmdb_type == 'movie' else 'watched_episodes'
+        item_id = f'{tmdb_type}.{tmdb_id}'
+        values = self.get_cached_values('simplecache', item_id, (key,))
+        return bool(values and values[0])
 
 
 class ListGemini(ContainerDefaultCacheDirectory):
@@ -30,6 +45,10 @@ class ListGemini(ContainerDefaultCacheDirectory):
         from tmdbhelper.lib.api.openrouter.api import OpenRouter
         return OpenRouter()
 
+    @cached_property
+    def watched_checker(self):
+        return TraktWatchedChecker()
+
     @ItemCache('ItemContainer.db')
     def get_cached_response(self):
         return self.get_prompt_items()
@@ -49,6 +68,23 @@ class ListGemini(ContainerDefaultCacheDirectory):
                     kodi_log(f'Ask Gemini: served by OpenRouter for query "{self.query}"', 1)
         return data
 
+    def is_item_watched(self, item):
+        params = item.get('params') or {}
+        tmdb_type = params.get('tmdb_type')
+        tmdb_id = params.get('tmdb_id')
+        if not tmdb_type or not tmdb_id:
+            return False
+        try:
+            return self.watched_checker.is_watched(tmdb_type, tmdb_id)
+        except Exception as exc:
+            kodi_log(f'Ask Gemini: watched-status lookup failed for {tmdb_type}.{tmdb_id}: {exc}', 1)
+            return False
+
+    def filter_watched(self, items):
+        if not get_setting('gemini_exclude_watched'):
+            return items
+        return [i for i in items if not self.is_item_watched(i)]
+
     def get_items(self, query=None, tmdb_type=None, limit=None, **kwargs):
         if not self.gemini.api_key:
             Dialog().ok('Gemini', f"{get_localized(32150)}[CR]{get_localized(32151).format('https://aistudio.google.com/app/api-keys')}")
@@ -60,6 +96,7 @@ class ListGemini(ContainerDefaultCacheDirectory):
         if not items:
             Dialog().ok('Gemini', self.gemini.get_error_message())
             return
+        items = self.filter_watched(items)
         if tmdb_type:
             mediatype = 'movie' if tmdb_type == 'movie' else 'tvshow'
             items = [i for i in items if i.get('infolabels', {}).get('mediatype') == mediatype]

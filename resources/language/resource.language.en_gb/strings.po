@@ -2735,6 +2735,11 @@ msgctxt "#32545"
 msgid "Queue episodes from all remaining seasons"
 msgstr ""
 
+#: /resources/settings.xml
+msgctxt "#32546"
+msgid "Exclude titles you've already watched"
+msgstr ""
+
 msgctxt "#30030"
 msgid "Hindi (India)"
 msgstr ""
