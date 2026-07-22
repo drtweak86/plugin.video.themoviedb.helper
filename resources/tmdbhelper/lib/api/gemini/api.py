@@ -74,10 +74,14 @@ Now:
 '''
 
 
-class Gemini(RequestAPI):
+class BaseAIRecommender(RequestAPI):
 
-    api_key = get_setting('gemini_apikey', 'str')
+    api_key = None
     last_error_message = None
+
+    @property
+    def is_rate_limited(self):
+        return getattr(self.last_response, 'status_code', None) == 429
 
     def get_error_message(self):
         if self.last_error_message:
@@ -91,39 +95,6 @@ class Gemini(RequestAPI):
         if status == 429:
             return get_localized(GEMINI_ERROR_RATE_LIMIT)
         return get_localized(GEMINI_ERROR_GENERIC)
-
-    def __init__(self, api_key=None):
-        api_key = api_key or self.api_key
-
-        super(Gemini, self).__init__(
-            req_api_name='Gemini',
-            req_api_url=f"{GEMINI_API_BASE}/models/{GEMINI_DEFAULT_MODEL_ID}:generateContent",
-            timeout=30,
-        )
-
-        Gemini.api_key = api_key
-
-    @property
-    def headers(self):
-        return {
-            "Content-Type": "application/json",
-            "x-goog-api-key": self.api_key,
-        }
-
-    @headers.setter
-    def headers(self, value):
-        """ Ignore base class req_api attempting to set headers """
-        return
-
-    def get_prompt_postdata(self, prompt_text):
-        return {
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [{"text": prompt_text}]
-                }
-            ]
-        }
 
     def get_prompt_query(self, prompt_text):
         return QUERY_PROMPT_TEMPLATE.format(
@@ -171,11 +142,11 @@ class Gemini(RequestAPI):
 
     @staticmethod
     def parse_bold(string):
-        return Gemini.parse_regex(string, r'\*\*(.+?)\*\*', '[B]{}[/B]')
+        return BaseAIRecommender.parse_regex(string, r'\*\*(.+?)\*\*', '[B]{}[/B]')
 
     @staticmethod
     def parse_italics(string):
-        return Gemini.parse_regex(string, r'\*(.+?)\*', '[I]{}[/I]')
+        return BaseAIRecommender.parse_regex(string, r'\*(.+?)\*', '[I]{}[/I]')
 
     @staticmethod
     def parse_regex(string, regex, restr):
@@ -183,13 +154,13 @@ class Gemini(RequestAPI):
         if not match:
             return string
         string = string.replace(match.group(0), restr.format(match.group(1)))
-        return Gemini.parse_regex(string, regex, restr)
+        return BaseAIRecommender.parse_regex(string, regex, restr)
 
     @staticmethod
     def parse_string(string):
         string = string.replace('*  ', '•  ')
-        string = Gemini.parse_bold(string)
-        string = Gemini.parse_italics(string)
+        string = BaseAIRecommender.parse_bold(string)
+        string = BaseAIRecommender.parse_italics(string)
         string = string.replace('\n', '[CR]')
         return string
 
@@ -205,11 +176,11 @@ class Gemini(RequestAPI):
             year = i['year']
             mode = i['type']
         except (TypeError, KeyError):
-            kodi_log(f'Gemini INVALID SPEC: {i}', 1)
+            kodi_log(f'AI recommender INVALID SPEC: {i}', 1)
             return
 
         if mode not in ('Movie', 'Show'):
-            kodi_log(f'Gemini INVALID SPEC: {i}', 1)
+            kodi_log(f'AI recommender INVALID SPEC: {i}', 1)
             return
 
         tmdb_type = 'movie' if mode == 'Movie' else 'tv'
@@ -217,11 +188,11 @@ class Gemini(RequestAPI):
             tmdb_id = self.database.get_tmdb_id(tmdb_type=tmdb_type, query=name, year=year)
             tmdb_id = tmdb_id or self.database.get_tmdb_id(tmdb_type=tmdb_type, query=name)  # Try again without year
         except Exception as exc:
-            kodi_log(f'Gemini DB LOOKUP ERROR for {name}: {exc}', 1)
+            kodi_log(f'AI recommender DB LOOKUP ERROR for {name}: {exc}', 1)
             tmdb_id = None
 
         if not tmdb_id:
-            kodi_log(f'Gemini UNKNOWN ITEM: {i}', 1)
+            kodi_log(f'AI recommender UNKNOWN ITEM: {i}', 1)
             return
 
         reason = i.get('reason') or ''
@@ -251,7 +222,7 @@ class Gemini(RequestAPI):
         try:
             data = data['recommendations']
         except (TypeError, KeyError):
-            kodi_log(f'Gemini FAILED: Unable to locate recommendations data', 1)
+            kodi_log(f'AI recommender FAILED: Unable to locate recommendations data', 1)
             return
 
         from tmdbhelper.lib.addon.thread import ParallelThread
@@ -259,18 +230,6 @@ class Gemini(RequestAPI):
             items = pt.queue
 
         return [i for i in items if i]
-
-    @staticmethod
-    def get_candidates(data):
-        try:
-            parts = data['candidates'][0]['content']['parts']
-        except (TypeError, IndexError, KeyError):
-            kodi_log(f'Gemini FAILED: Unable to get parts', 1)
-            return
-        if not parts:
-            kodi_log(f'Gemini FAILED: Unable to get parts', 1)
-            return
-        return "".join(part.get("text", "") for part in parts).strip()
 
     @staticmethod
     def get_json_from_candidate(text):
@@ -288,10 +247,60 @@ class Gemini(RequestAPI):
 
         start, end = cleaned.find("{"), cleaned.rfind("}")
         if start == -1 or end == -1 or end <= start:
-            kodi_log(f'Gemini FAILED: Unable to find json data in response', 1)
+            kodi_log(f'AI recommender FAILED: Unable to find json data in response', 1)
             return
         try:
             return loads(cleaned[start:end + 1])
         except Exception as exc:
-            kodi_log(f'Gemini FAILED: JSON parse error: {exc}', 1)
+            kodi_log(f'AI recommender FAILED: JSON parse error: {exc}', 1)
             return
+
+
+class Gemini(BaseAIRecommender):
+
+    api_key = get_setting('gemini_apikey', 'str')
+
+    def __init__(self, api_key=None):
+        api_key = api_key or self.api_key
+
+        super(Gemini, self).__init__(
+            req_api_name='Gemini',
+            req_api_url=f"{GEMINI_API_BASE}/models/{GEMINI_DEFAULT_MODEL_ID}:generateContent",
+            timeout=30,
+        )
+
+        Gemini.api_key = api_key
+
+    @property
+    def headers(self):
+        return {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key,
+        }
+
+    @headers.setter
+    def headers(self, value):
+        """ Ignore base class req_api attempting to set headers """
+        return
+
+    def get_prompt_postdata(self, prompt_text):
+        return {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": prompt_text}]
+                }
+            ]
+        }
+
+    @staticmethod
+    def get_candidates(data):
+        try:
+            parts = data['candidates'][0]['content']['parts']
+        except (TypeError, IndexError, KeyError):
+            kodi_log(f'Gemini FAILED: Unable to get parts', 1)
+            return
+        if not parts:
+            kodi_log(f'Gemini FAILED: Unable to get parts', 1)
+            return
+        return "".join(part.get("text", "") for part in parts).strip()
