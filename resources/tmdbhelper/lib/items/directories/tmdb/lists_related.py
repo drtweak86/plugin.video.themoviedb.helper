@@ -18,6 +18,17 @@ class ListRelatedProperties(ListStandardProperties):
             self.pmax
         )
 
+    @cached_property
+    def item_title(self):
+        from tmdbhelper.lib.items.database.baseitem_factories.factory import BaseItemFactory
+        mediatype = 'movie' if self.tmdb_type == 'movie' else 'tvshow'
+        sync = BaseItemFactory(mediatype)
+        sync.tmdb_id = self.tmdb_id
+        try:
+            return sync.data['infolabels']['title']
+        except (KeyError, TypeError, AttributeError):
+            return ''
+
 
 class ListRelated(ListStandard):
     list_properties_class = ListRelatedProperties
@@ -31,7 +42,7 @@ class ListRecommendations(ListRelated):
 
     def configure_list_properties(self, list_properties):
         list_properties = super().configure_list_properties(list_properties)
-        list_properties.plugin_name = '{localized}'  # TODO: BASED ON {item}
+        list_properties.plugin_name = f'{{localized}} for {list_properties.item_title}' if list_properties.item_title else '{localized}'
         list_properties.dbid_sorted = True
         list_properties.request_url = '{tmdb_type}/{tmdb_id}/recommendations'
         list_properties.localize = 32223
@@ -44,7 +55,7 @@ class ListSimilar(ListRelated):
 
     def configure_list_properties(self, list_properties):
         list_properties = super().configure_list_properties(list_properties)
-        list_properties.plugin_name = '{localized}'  # TODO: BASED ON {item}
+        list_properties.plugin_name = f'{{localized}} to {list_properties.item_title}' if list_properties.item_title else '{localized}'
         list_properties.dbid_sorted = True
         list_properties.request_url = '{tmdb_type}/{tmdb_id}/similar'
         list_properties.localize = 32224
@@ -55,7 +66,7 @@ class ListReviews(ListRelated):
 
     def configure_list_properties(self, list_properties):
         list_properties = super().configure_list_properties(list_properties)
-        list_properties.plugin_name = '{localized}'  # TODO: BASED ON {item}
+        list_properties.plugin_name = f'{{localized}} for {list_properties.item_title}' if list_properties.item_title else '{localized}'
         list_properties.dbid_sorted = True
         list_properties.request_url = '{tmdb_type}/{tmdb_id}/reviews'
         list_properties.tmdb_type = 'review'
@@ -70,7 +81,7 @@ class ListKeywords(ListRelated):
 
     def configure_list_properties(self, list_properties):
         list_properties = super().configure_list_properties(list_properties)
-        list_properties.plugin_name = '{localized}'  # TODO: BASED ON {item}
+        list_properties.plugin_name = f'{{localized}} for {list_properties.item_title}' if list_properties.item_title else '{localized}'
         list_properties.request_url = 'movie/{tmdb_id}/keywords'
         list_properties.results_key = 'keywords'
         list_properties.tmdb_type = 'keyword'
