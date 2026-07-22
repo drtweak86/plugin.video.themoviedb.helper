@@ -911,6 +911,20 @@
                     <default>False</default>
                     <control type="toggle"/>
                 </setting>
+                <setting id="castmember_limit" type="integer" label="32544" help="">
+                    <level>0</level>
+                    <default>100</default>
+                    <constraints>
+                        <options>
+                            <option>25</option>
+                            <option>50</option>
+                            <option>100</option>
+                            <option>150</option>
+                            <option>200</option>
+                        </options>
+                    </constraints>
+                    <control type="spinner" format="string"/>
+                </setting>
             </group>
             <group id="2" label="14200">
                 <setting id="force_recache_kodidb" type="boolean" label="32508" help="">

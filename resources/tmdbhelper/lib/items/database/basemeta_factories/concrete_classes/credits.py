@@ -1,3 +1,4 @@
+from tmdbhelper.lib.addon.plugin import get_setting
 from tmdbhelper.lib.items.database.basemeta_factories.concrete_classes.baseclass import ItemDetailsList
 
 
@@ -5,7 +6,6 @@ class CastMember(ItemDetailsList):
     table = 'castmember'
     keys = ('tmdb_id', 'role', 'ordering', 'appearances', 'guest', 'parent_id')
     conflict_constraint = 'tmdb_id, role, parent_id'
-    conditions = 'parent_id=? GROUP BY castmember.tmdb_id ORDER BY IFNULL(ordering, 9999) ASC LIMIT 100'  # WHERE conditions  # TODO: Move limit to settings ???
     cached_data_keys = (
         'castmember.tmdb_id', 'GROUP_CONCAT(role, " / ") as role', 'ordering', 'appearances', 'guest',
         'name', 'gender', 'biography', 'known_for_department',
@@ -16,6 +16,11 @@ class CastMember(ItemDetailsList):
             ') as thumb'
         ),
     )
+
+    @property
+    def conditions(self):
+        limit = get_setting('castmember_limit', 'int') or 100
+        return f'parent_id=? GROUP BY castmember.tmdb_id ORDER BY IFNULL(ordering, 9999) ASC LIMIT {limit}'
 
     def image_path_func(self, v):
         return self.common_apis.tmdb_imagepath.get_imagepath_poster(v)

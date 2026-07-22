@@ -2715,6 +2715,11 @@ msgctxt "#32541"
 msgid "Gemini responded, but no results could be matched in your local database."
 msgstr ""
 
+#: /resources/settings.xml
+msgctxt "#32544"
+msgid "Cast list limit"
+msgstr ""
+
 msgctxt "#30030"
 msgid "Hindi (India)"
 msgstr ""
