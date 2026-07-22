@@ -654,6 +654,11 @@
                     <default>True</default>
                     <control type="toggle"/>
                 </setting>
+                <setting id="player_queue_all_seasons" type="boolean" label="32545" help="">
+                    <level>0</level>
+                    <default>False</default>
+                    <control type="toggle"/>
+                </setting>
                 <setting id="players_url" type="string" label="32016" help="">
                     <level>0</level>
                     <constraints>
