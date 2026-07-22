@@ -1,10 +1,24 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from tmdbhelper.lib.api.mapping import _ItemMapper
-from tmdbhelper.lib.items.database.mappings.support import ExtendedMap
+from tmdbhelper.lib.items.database.mappings.general import GeneralMapperMethods
+from tmdbhelper.lib.items.database.mappings.art import ArtMapperMethods
+from tmdbhelper.lib.items.database.mappings.genre import GenreMapperMethods
+from tmdbhelper.lib.items.database.mappings.credits import CreditsMapperMethods
+from tmdbhelper.lib.items.database.mappings.translations import TranslationMapperMethods
+from tmdbhelper.lib.items.database.mappings.movie import MovieMapperMethods
+from tmdbhelper.lib.items.database.mappings.tv import TVMapperMethods
 
 
-class ItemMapperMethods:
+class ItemMapperMethods(
+    GeneralMapperMethods,
+    ArtMapperMethods,
+    GenreMapperMethods,
+    CreditsMapperMethods,
+    TranslationMapperMethods,
+    MovieMapperMethods,
+    TVMapperMethods,
+):
     pass
 
 
